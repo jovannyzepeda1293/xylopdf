@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  email          String        @unique
+  name           String?
+  googleId       String?       @unique @map("google_id")
+  avatarUrl      String?       @map("avatar_url")
+  passwordHash   String?       @map("password_hash")
+  isActive          Boolean       @default(true) @map("is_active")
+  isConfirmed       Boolean       @default(false) @map("is_confirmed")
+  confirmationToken String?       @unique @map("confirmation_token")
+  resetToken        String?       @unique @map("reset_token")
+  resetTokenExpires  DateTime?     @map("reset_token_expires")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  dailyConversions  Int           @default(0) @map("daily_conversions")
+  lastConversionDate DateTime     @default(now()) @map("last_conversion_date")
+  language           String       @default("es") @map("language")
+  subscription      Subscription?
+
+  @@index([email])
+  @@index([confirmationToken])
+  @@map("users")
+}
+
+model GuestUsage {
+  id               Int      @id @default(autoincrement())
+  ip               String   @unique
+  count            Int      @default(0)
+  lastConversionDate DateTime @default(now()) @map("last_conversion_date")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("guest_usage")
+}
+
+model Subscription {
+  id               Int       @id @default(autoincrement())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           Int       @unique @map("user_id")
+  lastPaymentDate  DateTime? @map("last_payment_date")
+  expiresAt        DateTime? @map("expires_at")
+  status           Int?
+  customerId       String?   @unique @map("customer_id")
+  subscriptionId   String?   @unique @map("subscription_id")
+  canceled         Boolean   @default(false)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
