@@ -10,6 +10,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { generateThumbnail } from "@/lib/pdf-preview";
 import { useI18n } from "@/lib/i18n/I18nContext";
+import { useUsageLimit } from "@/hooks/useUsageLimit";
+import LimitModal from "@/components/LimitModal";
 
 interface FileWithPreview {
   file: File;
@@ -24,6 +26,14 @@ export default function ImageUploader() {
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isZip, setIsZip] = useState(false);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -48,6 +58,10 @@ export default function ImageUploader() {
   const startConversion = async () => {
     if (!file) return;
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus("uploading");
     setErrorMessage("");
     setProgress(0);
@@ -60,7 +74,7 @@ export default function ImageUploader() {
         setProgress(prev => (prev >= 90 ? 90 : prev + 10));
       }, 300);
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/pdf-to-jpg", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/pdf-to-jpg`, {
         method: "POST",
         body: formData,
       });
@@ -79,6 +93,9 @@ export default function ImageUploader() {
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
       setIsZip(blob.type === "application/zip");
+
+      // Increment usage
+      await incrementUsage();
 
       setTimeout(() => {
         setStatus("completed");
@@ -261,6 +278,14 @@ export default function ImageUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

@@ -10,6 +10,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { generateThumbnail } from '@/lib/pdf-preview';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -20,21 +23,31 @@ const formatBytes = (bytes: number, decimals = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const positions = [
-  { id: 'top-left', label: 'Superior Izquierda' },
-  { id: 'top-right', label: 'Superior Derecha' },
-  { id: 'center', label: 'Centro' },
-  { id: 'bottom-left', label: 'Inferior Izquierda' },
-  { id: 'bottom-right', label: 'Inferior Derecha' },
-];
+const AddWatermarkUploader = () => {
+  const { t } = useI18n();
 
-export default function AddWatermarkUploader() {
+  const positions = [
+    { id: 'top-left', label: t.watermark.uploader.posTL },
+    { id: 'top-right', label: t.watermark.uploader.posTR },
+    { id: 'center', label: t.watermark.uploader.posC },
+    { id: 'bottom-left', label: t.watermark.uploader.posBL },
+    { id: 'bottom-right', label: t.watermark.uploader.posBR },
+  ];
+
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   // Watermark Settings
   const [mode, setMode] = useState<'text' | 'image'>('text');
@@ -71,15 +84,19 @@ export default function AddWatermarkUploader() {
   const startProcessing = async () => {
     if (!file) return;
     if (mode === 'text' && !text) {
-      setErrorMessage('Por favor ingrese el texto de la marca de agua.');
+      setErrorMessage(t.watermark.uploader.errorMissingText);
       setStatus('error');
       return;
     }
     if (mode === 'image' && !imageFile) {
-      setErrorMessage('Por favor seleccione una imagen para la marca de agua.');
+      setErrorMessage(t.watermark.uploader.errorMissingImage);
       setStatus('error');
       return;
     }
+
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
 
     setStatus('processing');
     setProgress(0);
@@ -106,7 +123,7 @@ export default function AddWatermarkUploader() {
         setProgress(prev => (prev < 90 ? prev + 5 : 90));
       }, 300);
 
-      const response = await fetch('http://localhost:8000/add-watermark', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/add-watermark`, {
         method: 'POST',
         body: formData,
       });
@@ -116,12 +133,15 @@ export default function AddWatermarkUploader() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Error al agregar la marca de agua');
+        throw new Error(data.detail || t.uploader.errorFetching);
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
       
       // Automatic download
       const link = document.createElement('a');
@@ -133,7 +153,7 @@ export default function AddWatermarkUploader() {
 
       setStatus('completed');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error de conexión con el servidor');
+      setErrorMessage(err.message || t.uploader.errorUnexpected);
       setStatus('error');
     }
   };
@@ -237,11 +257,11 @@ export default function AddWatermarkUploader() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-xl flex items-center gap-2">
                     <Maximize className="w-5 h-5 text-primary" />
-                    Vista Previa
+                    {t.watermark.uploader.previewTitle}
                   </h3>
                   {file && (
                     <span className="text-xs text-secondary bg-accent px-3 py-1 rounded-full">
-                      {file.name} (1ra página)
+                      {file.name} ({t.watermark.uploader.firstPage})
                     </span>
                   )}
                 </div>
@@ -298,7 +318,7 @@ export default function AddWatermarkUploader() {
               {/* Controls Side */}
               <div className="space-y-8 py-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-3xl font-black">Configuración</h3>
+                  <h3 className="text-3xl font-black">{t.watermark.uploader.editorTitle}</h3>
                   <button onClick={reset} className="p-2 text-secondary hover:text-red-500 transition-colors">
                     <RefreshCw className="w-5 h-5" />
                   </button>
@@ -313,7 +333,7 @@ export default function AddWatermarkUploader() {
                     )}
                   >
                     <TypeIcon className="w-4 h-4" />
-                    Texto
+                    {t.watermark.uploader.textTab}
                   </button>
                   <button 
                     onClick={() => setMode('image')}
@@ -323,7 +343,7 @@ export default function AddWatermarkUploader() {
                     )}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    Imagen
+                    {t.watermark.uploader.imageTab}
                   </button>
                 </div>
 
@@ -332,18 +352,18 @@ export default function AddWatermarkUploader() {
                   {mode === 'text' ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <div>
-                        <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">Texto de la marca</label>
+                        <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">{t.watermark.uploader.textLabel}</label>
                         <input 
                           type="text" 
                           value={text} 
                           onChange={(e) => setText(e.target.value)}
                           className="w-full bg-accent/50 border border-border rounded-xl px-4 py-3 focus:border-primary outline-none transition-all font-medium"
-                          placeholder="Escribe aquí..."
+                          placeholder={t.watermark.uploader.textPlaceholder}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">Tamaño</label>
+                          <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">{t.watermark.uploader.sizeLabel}</label>
                           <div className="flex items-center gap-3">
                             <input 
                               type="range" min="10" max="200" value={fontSize} 
@@ -354,7 +374,7 @@ export default function AddWatermarkUploader() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">Color</label>
+                          <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">{t.watermark.uploader.colorLabel}</label>
                           <div className="flex items-center gap-3">
                             <input 
                               type="color" value={color} 
@@ -382,12 +402,12 @@ export default function AddWatermarkUploader() {
                             <div className="p-3 bg-accent rounded-full mb-3 group-hover:text-primary transition-colors">
                               <ImageIcon className="w-6 h-6" />
                             </div>
-                            <span className="text-sm font-bold">Subir Logo o Imagen</span>
+                            <span className="text-sm font-bold">{t.watermark.uploader.imageUploadLabel}</span>
                           </>
                         )}
                       </div>
                       <div>
-                        <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">Escala</label>
+                        <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider">{t.watermark.uploader.scaleLabel}</label>
                         <div className="flex items-center gap-3">
                           <input 
                             type="range" min="0.1" max="2" step="0.1" value={scale} 
@@ -406,7 +426,7 @@ export default function AddWatermarkUploader() {
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider flex items-center gap-2">
-                        <Palette className="w-4 h-4" /> Opacidad
+                        <Palette className="w-4 h-4" /> {t.watermark.uploader.opacityLabel}
                       </label>
                       <div className="flex items-center gap-3">
                         <input 
@@ -419,7 +439,7 @@ export default function AddWatermarkUploader() {
                     </div>
                     <div>
                       <label className="text-sm font-bold text-secondary mb-2 block uppercase tracking-wider flex items-center gap-2">
-                        <RotateCw className="w-4 h-4" /> Rotación
+                        <RotateCw className="w-4 h-4" /> {t.watermark.uploader.rotationLabel}
                       </label>
                       <div className="flex items-center gap-3">
                         <input 
@@ -434,7 +454,7 @@ export default function AddWatermarkUploader() {
 
                   <div>
                     <label className="text-sm font-bold text-secondary mb-4 block uppercase tracking-wider flex items-center gap-2">
-                      <Grid3X3 className="w-4 h-4" /> Posición
+                      <Grid3X3 className="w-4 h-4" /> {t.watermark.uploader.positionLabel}
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {positions.map((pos) => (
@@ -469,17 +489,17 @@ export default function AddWatermarkUploader() {
                     {status === 'processing' ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin" />
-                        Procesando...
+                        {t.watermark.uploader.loading1}
                       </>
                     ) : status === 'completed' ? (
                       <>
                         <CheckCircle2 className="w-6 h-6" />
-                        ¡Descargado!
+                        {t.watermark.uploader.btnDownloaded}
                       </>
                     ) : (
                       <>
                         <Download className="w-6 h-6" />
-                        Procesar y Descargar
+                        {t.watermark.uploader.btnProcess}
                       </>
                     )}
                   </button>
@@ -491,19 +511,29 @@ export default function AddWatermarkUploader() {
                       onClick={reset}
                       className="w-full mt-4 py-3 bg-accent text-accent-foreground rounded-xl text-sm font-bold border border-border hover:bg-accent/80 transition-all"
                     >
-                      Empezar con otro PDF
+                      {t.watermark.uploader.btnReset}
                     </motion.button>
                   )}
 
                   <p className="text-center text-secondary text-xs mt-4">
-                    Tus archivos se procesan de forma segura y se eliminan del servidor.
+                    {t.watermark.uploader.footerPrivacy}
                   </p>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );
-}
+};
+
+export default AddWatermarkUploader;

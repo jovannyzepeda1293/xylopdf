@@ -1,0 +1,46 @@
+# Dockerfile para Next.js (Frontend)
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Instalar dependencias necesarias para construcción (como prisma)
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copiar configuración de dependencias
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copiar el esquema de prisma para generación de cliente
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copiar el resto del código
+COPY . .
+
+# Construir la aplicación
+# Asegurarse de tener las ENVs de construcción si se necesitan (como base URL)
+RUN npm run build
+
+# --- Imagen final ---
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+# Instalar dependencias de ejecución de prisma
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production
+
+# Copiar archivos generados y configuraciones
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
+
+# Exponer el puerto de Next.js
+EXPOSE 3000
+
+# Script para arrancar
+CMD ["npm", "start"]

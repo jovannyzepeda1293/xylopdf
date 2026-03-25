@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
 
+import { useI18n } from '@/lib/i18n/I18nContext';
+
 // Helper to format bytes
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -21,6 +23,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 };
 
 export default function CompressPdfUploader() {
+  const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -44,6 +47,9 @@ export default function CompressPdfUploader() {
       setErrorMessage('');
       // Trigger compression automatically
       startCompression(selectedFile);
+    } else if (selectedFile) {
+      setErrorMessage(t.compressPdf.uploader.errorOnlyPdf);
+      setStatus('error');
     }
   };
 
@@ -68,7 +74,8 @@ export default function CompressPdfUploader() {
         setProgress(prev => (prev < 90 ? prev + 5 : 90));
       }, 300);
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/compress-pdf', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_URL}/compress-pdf`, {
         method: 'POST',
         body: formData,
       });
@@ -78,7 +85,7 @@ export default function CompressPdfUploader() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Error al comprimir el PDF');
+        throw new Error(data.detail || t.compressPdf.uploader.errorFetching);
       }
 
       const blob = await response.blob();
@@ -91,7 +98,7 @@ export default function CompressPdfUploader() {
       
       setStatus('completed');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error de conexión con el servidor');
+      setErrorMessage(err.message || t.compressPdf.uploader.errorConnection);
       setStatus('error');
     }
   };
@@ -145,13 +152,12 @@ export default function CompressPdfUploader() {
                 <div className="p-6 bg-teal-500/10 rounded-full inline-block mb-6 group-hover:scale-110 transition-transform">
                   <Zap className="w-12 h-12 text-teal-500" />
                 </div>
-                <h3 className="text-3xl font-bold mb-4">Comprimir PDF</h3>
                 <p className="text-secondary max-w-sm mx-auto mb-8">
-                  Reduce el peso de tus archivos PDF sin perder calidad visual notable.
+                  {t.compressPdf.uploader.uploadHint}
                 </p>
                 <div className="py-3 px-8 bg-background border border-border rounded-xl inline-flex items-center gap-2 text-sm font-medium">
                   <Upload className="w-4 h-4" />
-                  Seleccionar archivo
+                  {t.compressPdf.uploader.chooseFile}
                 </div>
               </div>
             </motion.div>
@@ -194,7 +200,7 @@ export default function CompressPdfUploader() {
                     ) : (
                       <Zap className="w-5 h-5" />
                     )}
-                    Comprimir ahora
+                    {t.compressPdf.uploader.title}
                   </button>
                 </div>
               </div>
@@ -221,12 +227,12 @@ export default function CompressPdfUploader() {
                 </div>
               </div>
 
-              <h2 className="text-4xl font-black mb-10">¡PDF Comprimido!</h2>
+              <h2 className="text-4xl font-black mb-10">{t.compressPdf.uploader.success}</h2>
 
               {/* Comparison Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                 <div className="p-6 glass border border-border/50 rounded-3xl">
-                  <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Original</p>
+                  <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">{t.compressPdf.uploader.originalLabel}</p>
                   <p className="text-2xl font-black">{formatBytes(file.size)}</p>
                 </div>
 
@@ -234,14 +240,14 @@ export default function CompressPdfUploader() {
                   <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
                     <TrendingDown className="w-24 h-24 text-teal-500" />
                   </div>
-                  <p className="text-xs font-bold text-teal-500 uppercase tracking-widest mb-2">Reducción</p>
+                  <p className="text-xs font-bold text-teal-500 uppercase tracking-widest mb-2">{t.compressPdf.uploader.reductionLabel}</p>
                   <p className="text-4xl font-black text-teal-500">
                     -{Math.round(((file.size - compressedSize) / file.size) * 100)}%
                   </p>
                 </div>
 
                 <div className="p-6 glass border border-border/50 rounded-3xl">
-                  <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Comprimido</p>
+                  <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">{t.compressPdf.uploader.compressedLabel}</p>
                   <p className="text-2xl font-black">{formatBytes(compressedSize)}</p>
                 </div>
               </div>
@@ -252,14 +258,14 @@ export default function CompressPdfUploader() {
                   download={`comprimido_${file.name}`}
                   className="px-12 py-5 bg-teal-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-2xl shadow-teal-500/30 flex items-center justify-center gap-3"
                 >
-                  Descargar PDF
+                  {t.compressPdf.uploader.btnDownload}
                   <Download className="w-5 h-5" />
                 </a>
                 <button
                   onClick={reset}
                   className="px-12 py-5 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/80 transition-all border border-border"
                 >
-                  Comprimir otro
+                  {t.compressPdf.uploader.btnReset}
                 </button>
               </div>
             </motion.div>

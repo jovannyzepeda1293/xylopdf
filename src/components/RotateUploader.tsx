@@ -9,24 +9,37 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { generateThumbnail } from "@/lib/pdf-preview";
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
+
+import { useI18n } from "@/lib/i18n/I18nContext";
 
 interface FileWithPreview {
   file: File;
   preview: string;
 }
 
-const rotationOptions = [
-  { label: "90° Derecha", angle: 90, icon: RotateCw },
-  { label: "180° Invertido", angle: 180, icon: RefreshCcw },
-  { label: "90° Izquierda", angle: 270, icon: RotateCcw },
-];
-
 export default function RotateUploader() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "completed" | "error">("idle");
   const [file, setFile] = useState<FileWithPreview | null>(null);
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
+
+  const rotationOptions = [
+    { label: t.rotatePdf.uploader.angle90, angle: 90, icon: RotateCw },
+    { label: t.rotatePdf.uploader.angle180, angle: 180, icon: RefreshCcw },
+    { label: t.rotatePdf.uploader.angle270, angle: 270, icon: RotateCcw },
+  ];
 
   // Custom states for rotation
   const [pages, setPages] = useState("");
@@ -37,7 +50,7 @@ export default function RotateUploader() {
       const selectedFile = e.target.files[0];
 
       if (selectedFile.type !== "application/pdf") {
-        setErrorMessage("Solo se permiten archivos PDF.");
+        setErrorMessage(t.rotatePdf.uploader.errorOnlyPdf);
         setStatus("error");
         return;
       }
@@ -55,10 +68,14 @@ export default function RotateUploader() {
 
   const startRotation = async () => {
     if (!file) {
-      setErrorMessage("Por favor, selecciona un archivo PDF.");
+      setErrorMessage(t.rotatePdf.uploader.errorSelectFile);
       setStatus("error");
       return;
     }
+
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
 
     setStatus("uploading");
     setErrorMessage("");
@@ -68,12 +85,12 @@ export default function RotateUploader() {
     if (pages.trim()) {
       const rangeRegex = /^(\d+(\s*-\s*\d+)?\s*(,\s*\d+(\s*-\s*\d+)?\s*)*)$/;
       if (!rangeRegex.test(pages.trim())) {
-        setErrorMessage("Formato de páginas inválido. Usa números o rangos (ej: 1, 3-5).");
+        setErrorMessage(t.rotatePdf.uploader.errorInvalidRange);
         setStatus("error");
         return;
       }
       if (pages.includes("0")) {
-        setErrorMessage("El número de página 0 no es válido.");
+        setErrorMessage(t.rotatePdf.uploader.errorZeroPage);
         setStatus("error");
         return;
       }
@@ -102,7 +119,7 @@ export default function RotateUploader() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al rotar el PDF.");
+        throw new Error(errorData.detail || t.rotatePdf.uploader.errorFetching || "Error");
       }
 
       setProgress(100);
@@ -112,12 +129,15 @@ export default function RotateUploader() {
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
 
+      // Increment usage
+      await incrementUsage();
+
       setTimeout(() => {
         setStatus("completed");
       }, 1500);
 
     } catch (err: any) {
-      setErrorMessage(err.message || "Ocurrió un error inesperado.");
+      setErrorMessage(err.message || t.uploader.errorUnexpected);
       setStatus("error");
     }
   };
@@ -186,9 +206,9 @@ export default function RotateUploader() {
                           <Upload className="w-8 h-8" />
                         </div>
                         <span className="font-semibold text-lg">
-                          {file ? "Cambiar archivo" : "Selecciona tu PDF"}
+                          {file ? t.rotatePdf.uploader.changeFile : t.rotatePdf.uploader.chooseFile}
                         </span>
-                        <p className="text-xs text-secondary/60">Sube solo un archivo para rotar sus páginas</p>
+                        <p className="text-xs text-secondary/60">{t.rotatePdf.uploader.uploadHint}</p>
                       </div>
                     </label>
                   </div>
@@ -225,7 +245,7 @@ export default function RotateUploader() {
                 <div className="space-y-8">
                   <div>
                     <label className="block text-sm font-bold text-secondary mb-3 uppercase tracking-wider">
-                      Ángulo de Rotación
+                      {t.rotatePdf.uploader.rotationAngle}
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {rotationOptions.map((opt) => (
@@ -248,12 +268,12 @@ export default function RotateUploader() {
 
                   <div>
                     <label className="block text-sm font-bold text-secondary mb-3 uppercase tracking-wider">
-                      Rango de Páginas
+                      {t.rotatePdf.uploader.pageRange}
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="Ej: 1-5, 8, 11 (Vacio para todas)"
+                        placeholder={t.rotatePdf.uploader.pageRangePlaceholder}
                         value={pages}
                         onChange={(e) => setPages(e.target.value)}
                         className="w-full bg-accent/20 border-2 border-border rounded-2xl px-6 py-4 focus:border-primary outline-none transition-all font-medium placeholder:text-secondary/30"
@@ -263,7 +283,7 @@ export default function RotateUploader() {
                       </div>
                     </div>
                     <p className="mt-2 text-[10px] text-secondary/60 ml-2">
-                      Usa coma para separar páginas individuales y guión para rangos.
+                      {t.rotatePdf.uploader.pageRangeHint}
                     </p>
                   </div>
 
@@ -275,7 +295,7 @@ export default function RotateUploader() {
                       className="w-full py-5 bg-primary text-white rounded-[1.5rem] font-bold shadow-xl shadow-blue-500/20 hover:scale-[1.03] transition-all flex items-center justify-center gap-3 group mt-4 overflow-hidden relative"
                     >
                       <span className="relative z-10 flex items-center gap-2">
-                        Girar PDF Ahora
+                        {t.rotatePdf.uploader.title}
                         <RotateCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
                       </span>
                       <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -306,10 +326,10 @@ export default function RotateUploader() {
                 </div>
               </div>
               <h2 className="text-3xl font-bold mb-4">
-                {status === "uploading" ? "Preparando Documento..." : "Rotando Páginas..."}
+                {status === "uploading" ? t.rotatePdf.uploader.loading1 : t.rotatePdf.uploader.loading2}
               </h2>
               <p className="text-secondary max-w-sm mx-auto">
-                Estamos aplicando la alineación perfecta a tu PDF sin perder calidad Tipográfica.
+                {t.rotatePdf.uploader.loadingDesc}
               </p>
             </motion.div>
           )}
@@ -330,11 +350,11 @@ export default function RotateUploader() {
                   <CheckCircle2 className="w-14 h-14 text-green-500" />
                 </motion.div>
                 <div className="absolute -top-2 right-1/4 animate-bounce">
-                  <div className="px-3 py-1 bg-green-500 text-white text-[10px] font-bold rounded-full">¡LISTO!</div>
+                  <div className="px-3 py-1 bg-green-500 text-white text-[10px] font-bold rounded-full">{t.rotatePdf.uploader.successBadge || "DONE"}</div>
                 </div>
               </div>
-              <h2 className="text-4xl font-bold mb-3">PDF Rotado con Éxito</h2>
-              <p className="text-secondary mb-12 max-w-md mx-auto">Tu documento ha sido procesado siguiendo tus especificaciones de ángulo y rango.</p>
+              <h2 className="text-4xl font-bold mb-3">{t.rotatePdf.uploader.success}</h2>
+              <p className="text-secondary mb-12 max-w-md mx-auto">{t.rotatePdf.uploader.successDesc}</p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <a
@@ -342,7 +362,7 @@ export default function RotateUploader() {
                   download={`rotado_${file?.file.name}`}
                   className="px-10 py-5 bg-primary text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3 active:scale-95"
                 >
-                  Descargar PDF Rotado
+                  {t.rotatePdf.uploader.btnDownload}
                   <Upload className="w-5 h-5 rotate-180" />
                 </a>
                 <button
@@ -350,12 +370,20 @@ export default function RotateUploader() {
                   className="px-10 py-5 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/80 transition-all border border-border flex items-center justify-center gap-2"
                 >
                   <RefreshCcw className="w-5 h-5" />
-                  Girar Otro Más
+                  {t.rotatePdf.uploader.btnReset}
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

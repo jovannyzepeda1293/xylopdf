@@ -27,6 +27,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import * as pdfjs from 'pdfjs-dist';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -108,6 +110,14 @@ export default function OrganizePdfUploader() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -190,6 +200,10 @@ export default function OrganizePdfUploader() {
   const generatePdf = async () => {
     if (!file || pages.length === 0) return;
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus('organizing');
     setProgress(0);
 
@@ -201,7 +215,7 @@ export default function OrganizePdfUploader() {
     formData.append('order', JSON.stringify(order));
 
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/organize-pdf', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/organize-pdf`, {
         method: 'POST',
         body: formData,
       });
@@ -214,6 +228,10 @@ export default function OrganizePdfUploader() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
+
       setStatus('completed');
     } catch (err: any) {
       setErrorMessage(err.message || t.uploader.errorUnexpected);
@@ -416,6 +434,14 @@ export default function OrganizePdfUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

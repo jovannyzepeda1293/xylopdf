@@ -20,11 +20,17 @@ from dotenv import load_dotenv
 import httpx
 from datetime import datetime, timedelta, timezone
 import base64
-from fastapi import Request
+import redis
 
 # Load .env from root
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(dotenv_path, override=True)
+
+# Redis Config for security/banning
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+r = redis.from_url(redis_url, decode_responses=True)
+BAN_THRESHOLD = int(os.getenv("BAN_THRESHOLD", "10"))
+BAN_DURATION = 3600 # 1 hour in seconds
 
 try:
     import fitz # PyMuPDF
@@ -59,6 +65,13 @@ stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 @app.post("/webhook-stripe")
 async def stripe_webhook(request: Request):
+    ip = request.client.host
+    
+    # Check if IP is banned
+    if r.get(f"ban:{ip}"):
+        print(f"Python Security: Bloqueado Intento de IP baneada: {ip}")
+        raise HTTPException(status_code=403, detail="Acceso denegado temporalmente por múltiples fallos.")
+
     try:
         # Intentamos obtener el JSON del request
         payload_raw = await request.body()
@@ -82,9 +95,18 @@ async def stripe_webhook(request: Request):
             )
     except Exception as e:
         print(f"Stripe Webhook verification/parsing failed: {str(e)}")
+        
+        # Lógica de baneo progresivo
+        fails = r.incr(f"fails:{ip}")
+        r.expire(f"fails:{ip}", 300) # Expira en 5 minutos
+        
+        if fails >= BAN_THRESHOLD:
+            r.setex(f"ban:{ip}", BAN_DURATION, "true")
+            print(f"Python Security: BANUEADO IP {ip} por {BAN_DURATION}s tras {fails} fallos.")
+            
         # Si falla la verificación pero hay un body, intentamos procesar (para pruebas con n8n)
         try:
-            event = json.loads(await request.body())
+            event = json.loads(payload_raw)
             if isinstance(event, list): event = event[0].get("body", event[0])
         except:
             raise HTTPException(status_code=400, detail=str(e))

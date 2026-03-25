@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 
 import { useI18n } from "@/lib/i18n/I18nContext";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +26,16 @@ export default function RegisterPage() {
     setError("");
 
     try {
+      if (!recaptchaToken) {
+        setError(lang === 'es' ? "Por favor completa el captcha." : "Please complete the captcha.");
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/register-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, lang }),
+        body: JSON.stringify({ email, password, lang, recaptchaToken }),
       });
 
       if (!res.ok) {
@@ -127,6 +135,14 @@ export default function RegisterPage() {
                   <p className="text-xs text-muted-foreground ml-2 mt-2">
                     {lang === 'es' ? 'Debe tener al menos 6 caracteres.' : 'Must be at least 6 characters.'}
                   </p>
+                </div>
+
+                <div className="flex justify-center py-2">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                    onChange={(val) => setRecaptchaToken(val)}
+                    theme="light"
+                  />
                 </div>
 
                 <button

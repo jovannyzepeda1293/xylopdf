@@ -6,8 +6,13 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { generateThumbnail } from "@/lib/pdf-preview";
 import * as pdfjsLib from 'pdfjs-dist';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
+
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function SplitUploader() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "completed" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [thumbnail, setThumbnail] = useState<string>("");
@@ -17,13 +22,21 @@ export default function SplitUploader() {
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [numFiles, setNumFiles] = useState(0);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
 
       if (selectedFile.type !== "application/pdf") {
-        setErrorMessage("Solo se permiten archivos PDF.");
+        setErrorMessage(t.splitPdf.uploader.errorOnlyPdf);
         setStatus("error");
         return;
       }
@@ -32,7 +45,6 @@ export default function SplitUploader() {
       setStatus("idle");
       setErrorMessage("");
 
-      // Generate thumbnail and get page count
       const thumb = await generateThumbnail(selectedFile);
       setThumbnail(thumb);
 
@@ -55,17 +67,16 @@ export default function SplitUploader() {
     const cuts = parts.map(p => parseInt(p));
 
     if (cuts.some(isNaN)) {
-      return { valid: false, cuts: [], error: "Los puntos de corte deben ser números separados por comas." };
+      return { valid: false, cuts: [], error: t.splitPdf.uploader.errorInvalidCuts };
     }
 
     if (cuts.some(c => c <= 0 || c >= pageCount)) {
-      return { valid: false, cuts: [], error: `Los puntos de corte deben estar entre 1 y ${pageCount - 1}.` };
+      return { valid: false, cuts: [], error: t.splitPdf.uploader.errorRangeCuts };
     }
 
-    // Check if sorted and unique
     for (let i = 0; i < cuts.length - 1; i++) {
       if (cuts[i] >= cuts[i + 1]) {
-        return { valid: false, cuts: [], error: "Los puntos de corte deben estar en orden ascendente (ej: 5, 12, 18)." };
+        return { valid: false, cuts: [], error: t.splitPdf.uploader.errorOrderCuts };
       }
     }
 
@@ -88,6 +99,9 @@ export default function SplitUploader() {
       return;
     }
 
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus("uploading");
     setErrorMessage("");
     setProgress(0);
@@ -100,7 +114,8 @@ export default function SplitUploader() {
         setProgress(prev => (prev < 90 ? prev + 10 : 90));
       }, 200);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/split?cut_points=${cutPoints}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_URL}/split?cut_points=${cutPoints}`, {
         method: "POST",
         body: formData,
       });
@@ -109,7 +124,7 @@ export default function SplitUploader() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Error al dividir el archivo.");
+        throw new Error(errorData.detail || t.splitPdf.uploader.errorFetching);
       }
 
       setProgress(100);
@@ -119,12 +134,14 @@ export default function SplitUploader() {
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
 
+      await incrementUsage();
+
       setTimeout(() => {
         setStatus("completed");
       }, 1500);
 
     } catch (err: any) {
-      setErrorMessage(err.message || "Ocurrió un error inesperado.");
+      setErrorMessage(err.message || t.uploader.errorUnexpected);
       setStatus("error");
     }
   };
@@ -193,8 +210,8 @@ export default function SplitUploader() {
                           <div className="p-4 bg-accent rounded-full group-hover:bg-primary/20 group-hover:text-primary transition-colors">
                             <Scissors className="w-8 h-8" />
                           </div>
-                          <span className="font-bold text-lg">Elegir PDF para dividir</span>
-                          <span className="text-sm text-secondary">Arrastra tu archivo aquí</span>
+                          <span className="font-bold text-lg">{t.splitPdf.uploader.chooseFile || "Elegir PDF para dividir"}</span>
+                          <span className="text-sm text-secondary">{t.splitPdf.uploader.uploadHint || "Arrastra tu archivo aquí"}</span>
                         </div>
                       </label>
                     </div>
@@ -203,6 +220,7 @@ export default function SplitUploader() {
                       <button
                         onClick={reset}
                         className="absolute top-4 right-4 p-2 text-secondary hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        title={t.splitPdf.uploader.changeFile}
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -211,10 +229,10 @@ export default function SplitUploader() {
                         {thumbnail ? (
                           <img src={thumbnail} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">Cargando...</div>
+                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">{t.uploader.loading || "Cargando..."}</div>
                         )}
                         <div className="absolute top-2 right-2 px-2 py-1 bg-primary text-[10px] text-white font-bold rounded-md shadow-lg">
-                          {pageCount} PÁGS
+                          {pageCount} {t.splitPdf.uploader.pageCountShort || "PÁGS"}
                         </div>
                       </div>
 
@@ -229,19 +247,18 @@ export default function SplitUploader() {
                   <div className={cn("space-y-6", !file && "opacity-20 pointer-events-none transition-opacity")}>
                     <div>
                       <label className="block text-sm font-bold mb-3 uppercase tracking-wider text-secondary">
-                        Puntos de Corte
+                        {t.splitPdf.uploader.cutPoints}
                       </label>
                       <input
                         type="text"
-                        placeholder="ej: 5, 12, 18"
+                        placeholder={t.splitPdf.uploader.cutPointsPlaceholder}
                         className="w-full bg-accent border border-border rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-secondary/40 font-medium"
                         value={cutPoints}
                         onChange={(e) => setCutPoints(e.target.value)}
                         disabled={!file}
                       />
                       <p className="text-[11px] text-secondary mt-3 leading-relaxed italic">
-                        Introduce los números de página donde quieres realizar los cortes, separados por comas.
-                        Ejemplo: Si tu PDF tiene 20 páginas y pones "5, 12", obtendrás tres archivos: 1-5, 6-12 y 13-20.
+                        {t.splitPdf.uploader.cutPointsHint}
                       </p>
                     </div>
 
@@ -252,7 +269,7 @@ export default function SplitUploader() {
                         onClick={startSplit}
                         className="w-full py-5 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
                       >
-                        Dividir en {numFiles} {numFiles === 1 ? 'archivo' : 'archivos'}
+                        {t.splitPdf.uploader.title}
                         <Scissors className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </motion.button>
                     )}
@@ -279,10 +296,10 @@ export default function SplitUploader() {
                 </div>
               </div>
               <h2 className="text-3xl font-bold mb-4">
-                {status === "uploading" ? "Subiendo archivo..." : "Creando archivos..."}
+                {status === "uploading" ? t.splitPdf.uploader.loading1 : t.splitPdf.uploader.loading2}
               </h2>
               <p className="text-secondary animate-pulse">
-                Estamos cortando y empaquetando tus documentos.
+                {t.splitPdf.uploader.loadingDesc}
               </p>
             </motion.div>
           )}
@@ -304,8 +321,8 @@ export default function SplitUploader() {
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
                 </motion.div>
               </div>
-              <h2 className="text-3xl font-bold mb-2">¡Partición completada!</h2>
-              <p className="text-secondary mb-10">Tus {numFiles} archivos PDF han sido procesados y comprimidos en un ZIP.</p>
+              <h2 className="text-3xl font-bold mb-2">{t.splitPdf.uploader.success}</h2>
+              <p className="text-secondary mb-10">{t.splitPdf.uploader.successDesc}</p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
@@ -313,19 +330,27 @@ export default function SplitUploader() {
                   download="dividido_xylopdf.zip"
                   className="px-8 py-5 bg-primary text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-3"
                 >
-                  Descargar ZIP ({numFiles} archivos)
+                  {t.splitPdf.uploader.btnDownload}
                   <Download className="w-5 h-5" />
                 </a>
                 <button
                   onClick={reset}
                   className="px-8 py-5 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/80 transition-all border border-border"
                 >
-                  Dividir otro más
+                  {t.splitPdf.uploader.btnReset}
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

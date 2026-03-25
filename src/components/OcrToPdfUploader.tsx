@@ -8,6 +8,8 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/I18nContext";
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
 
 export default function OcrToPdfUploader() {
   const { t } = useI18n();
@@ -16,6 +18,14 @@ export default function OcrToPdfUploader() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -42,6 +52,10 @@ export default function OcrToPdfUploader() {
   const startConversion = async () => {
     if (!file) return;
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus("uploading");
     setErrorMessage("");
     setProgress(0);
@@ -54,7 +68,7 @@ export default function OcrToPdfUploader() {
         setProgress(prev => (prev >= 90 ? 90 : prev + 2));
       }, 1000);
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ocr-to-pdf", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ocr-to-pdf`, {
         method: "POST",
         body: formData,
       });
@@ -72,6 +86,9 @@ export default function OcrToPdfUploader() {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
 
       setTimeout(() => {
         setStatus("completed");
@@ -248,6 +265,14 @@ export default function OcrToPdfUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

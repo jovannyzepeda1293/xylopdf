@@ -9,6 +9,7 @@ import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { useI18n } from "@/lib/i18n/I18nContext";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,36 +18,49 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (res?.error) {
-      setError(lang === 'es' ? "Credenciales inválidas. Verifica tu correo y contraseña." : "Invalid credentials. Please check your email and password.");
-    } else {
-      try {
-        const sessionRes = await fetch("/api/auth/session");
-        const session = await sessionRes.json();
-        
-        if (session?.user?.subscriptionActive) {
-          router.push("/tools");
-        } else {
-          router.push("/activate-premium");
-        }
-        router.refresh();
-      } catch (e) {
-        router.push("/");
+    try {
+      if (!recaptchaToken) {
+        setError(lang === 'es' ? "Por favor completa el captcha." : "Please complete the captcha.");
+        setLoading(false);
+        return;
       }
+
+      const res = await signIn("credentials", {
+        email,
+        password,
+        recaptchaToken,
+        redirect: false,
+      });
+
+      setLoading(false);
+
+      if (res?.error) {
+        setError(lang === 'es' ? "Credenciales inválidas. Verifica tu correo y contraseña." : "Invalid credentials. Please check your email and password.");
+      } else {
+        try {
+          const sessionRes = await fetch("/api/auth/session");
+          const session = await sessionRes.json();
+          
+          if (session?.user?.subscriptionActive) {
+            router.push("/tools");
+          } else {
+            router.push("/activate-premium");
+          }
+          router.refresh();
+        } catch (e) {
+          router.push("/");
+        }
+      }
+    } catch (err: any) {
+      setError(lang === 'es' ? "Error inesperado." : "Unexpected error.");
+      setLoading(false);
     }
   };
 
@@ -114,6 +128,14 @@ export default function LoginPage() {
                       required
                     />
                   </div>
+                </div>
+
+                <div className="flex justify-center py-2">
+                  <ReCAPTCHA
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                    onChange={(val) => setRecaptchaToken(val)}
+                    theme="light"
+                  />
                 </div>
 
                 <button

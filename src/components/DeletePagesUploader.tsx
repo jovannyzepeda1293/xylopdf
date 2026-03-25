@@ -8,6 +8,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { generateThumbnail } from "@/lib/pdf-preview";
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
+import { useI18n } from "@/lib/i18n/I18nContext";
 
 export default function DeletePagesUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -17,6 +20,15 @@ export default function DeletePagesUploader() {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { t } = useI18n();
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -32,9 +44,15 @@ export default function DeletePagesUploader() {
 
   const handleDeletePages = async () => {
     if (!file || !pagesToDelete) {
-      setErrorMessage('Por favor, selecciona un archivo y especifica las páginas a eliminar.');
+      if (!file) setErrorMessage(t.uploader.errorSelectFile);
+      else setErrorMessage(t.deletePages.uploader.errorMissingPages);
+      setStatus('error');
       return;
     }
+
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
 
     setStatus('processing');
     setProgress(0);
@@ -49,7 +67,7 @@ export default function DeletePagesUploader() {
         setProgress(prev => (prev < 90 ? prev + 10 : 90));
       }, 200);
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/delete-pages', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/delete-pages`, {
         method: 'POST',
         body: formData,
       });
@@ -59,15 +77,19 @@ export default function DeletePagesUploader() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Error al eliminar páginas');
+        throw new Error(data.detail || t.deletePages.uploader.errorFetching);
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
+
       setStatus('completed');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error de conexión con el servidor');
+      setErrorMessage(err.message || t.uploader.errorUnexpected);
       setStatus('error');
     }
   };
@@ -134,8 +156,8 @@ export default function DeletePagesUploader() {
                         <div className="p-4 bg-red-500/10 rounded-full group-hover:bg-red-500/20 group-hover:text-red-500 transition-colors">
                           <Trash2 className="w-8 h-8" />
                         </div>
-                        <span className="font-bold text-lg">Elegir PDF para editar</span>
-                        <span className="text-sm text-secondary">Arrastra tu archivo aquí</span>
+                        <span className="font-bold text-lg">{t.deletePages.uploader.chooseFile}</span>
+                        <span className="text-sm text-secondary">{t.deletePages.uploader.uploadHint}</span>
                       </div>
                     </div>
                   ) : (
@@ -151,7 +173,7 @@ export default function DeletePagesUploader() {
                         {thumbnail ? (
                           <img src={thumbnail} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">Cargando...</div>
+                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">{t.deletePages.uploader.loading}</div>
                         )}
                         <div className="absolute top-2 right-2 p-1.5 bg-red-500 rounded-md shadow-lg">
                           <FileText className="w-4 h-4 text-white" />
@@ -169,18 +191,18 @@ export default function DeletePagesUploader() {
                   <div className={cn("space-y-6", !file && "opacity-20 pointer-events-none transition-opacity")}>
                     <div>
                       <label className="block text-sm font-bold mb-3 uppercase tracking-wider text-secondary text-left">
-                        Páginas a Eliminar
+                        {t.deletePages.uploader.pagesLabel}
                       </label>
                       <input
                         type="text"
                         value={pagesToDelete}
                         onChange={(e) => setPagesToDelete(e.target.value)}
-                        placeholder="Ej: 1, 3-5, 10"
+                        placeholder={t.deletePages.uploader.pagesPlaceholder}
                         className="w-full bg-accent border border-border rounded-2xl px-6 py-4 focus:ring-2 focus:ring-red-500/20 outline-none transition-all placeholder:text-secondary/40 font-medium"
                         disabled={!file}
                       />
                       <p className="text-[11px] text-secondary mt-3 leading-relaxed italic text-left">
-                        Especifica números individuales o rangos separados por comas.
+                        {t.deletePages.uploader.pagesHint}
                       </p>
                     </div>
 
@@ -191,7 +213,7 @@ export default function DeletePagesUploader() {
                         onClick={handleDeletePages}
                         className="w-full py-5 bg-red-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
                       >
-                        Eliminar Páginas Seleccionadas
+                        {t.deletePages.uploader.btnProcess}
                         <Trash2 className="w-5 h-5" />
                       </motion.button>
                     )}
@@ -217,9 +239,9 @@ export default function DeletePagesUploader() {
                   </div>
                 </div>
               </div>
-              <h2 className="text-3xl font-bold mb-4">Eliminando Páginas...</h2>
+              <h2 className="text-3xl font-bold mb-4">{t.deletePages.uploader.loadingTitle}</h2>
               <p className="text-secondary animate-pulse">
-                Estamos procesando tu archivo para remover el contenido seleccionado.
+                {t.deletePages.uploader.loadingDesc}
               </p>
             </motion.div>
           )}
@@ -237,8 +259,8 @@ export default function DeletePagesUploader() {
                 </div>
               </div>
 
-              <h2 className="text-4xl font-black mb-4">¡Páginas Eliminadas!</h2>
-              <p className="text-secondary mb-12">El documento ha sido modificado exitosamente.</p>
+              <h2 className="text-4xl font-black mb-4">{t.deletePages.uploader.success}</h2>
+              <p className="text-secondary mb-12">{t.deletePages.uploader.successDesc}</p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <a
@@ -246,19 +268,27 @@ export default function DeletePagesUploader() {
                   download={`modificado_${file.name}`}
                   className="px-12 py-5 bg-red-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-2xl shadow-red-500/30 flex items-center justify-center gap-3"
                 >
-                  Descargar PDF
+                  {t.deletePages.uploader.btnDownload}
                   <Download className="w-5 h-5" />
                 </a>
                 <button
                   onClick={reset}
                   className="px-12 py-5 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/80 transition-all border border-border"
                 >
-                  Editar otro
+                  {t.deletePages.uploader.btnReset}
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

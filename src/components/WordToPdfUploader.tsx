@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useUsageLimit } from "@/hooks/useUsageLimit";
+import LimitModal from "@/components/LimitModal";
+import { useI18n } from "@/lib/i18n/I18nContext";
 
 export default function WordToPdfUploader() {
   const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "completed" | "error">("idle");
@@ -14,6 +17,15 @@ export default function WordToPdfUploader() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { t } = useI18n();
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -22,7 +34,7 @@ export default function WordToPdfUploader() {
       const fileName = selectedFile.name.toLowerCase();
 
       if (!validExtensions.some(ext => fileName.endsWith(ext))) {
-        setErrorMessage("Por favor sube un archivo de Word válido (.doc, .docx).");
+        setErrorMessage(t.uploader.errorOnlyWord || "Por favor sube un archivo de Word válido (.doc, .docx).");
         setStatus("error");
         return;
       }
@@ -40,6 +52,10 @@ export default function WordToPdfUploader() {
   const startConversion = async () => {
     if (!file) return;
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus("uploading");
     setErrorMessage("");
     setProgress(0);
@@ -52,7 +68,7 @@ export default function WordToPdfUploader() {
         setProgress(prev => (prev >= 90 ? 90 : prev + 5));
       }, 500);
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/word-to-pdf", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/word-to-pdf`, {
         method: "POST",
         body: formData,
       });
@@ -61,7 +77,7 @@ export default function WordToPdfUploader() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Error en la conversión.");
+        throw new Error(errorData.detail || t.uploader.errorFetching);
       }
 
       setProgress(100);
@@ -71,12 +87,15 @@ export default function WordToPdfUploader() {
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
 
+      // Increment usage
+      await incrementUsage();
+
       setTimeout(() => {
         setStatus("completed");
       }, 1500);
 
     } catch (err: any) {
-      setErrorMessage(err.message || "Ocurrió un error inesperado.");
+      setErrorMessage(err.message || t.uploader.errorUnexpected);
       setStatus("error");
     }
   };
@@ -137,15 +156,15 @@ export default function WordToPdfUploader() {
                       <div className="p-4 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 group-hover:text-blue-500 transition-colors">
                         <Upload className="w-8 h-8" />
                       </div>
-                      <span className="font-semibold">Arrastra o elige tu archivo Word</span>
-                      <span className="text-xs text-secondary/60">Formatos: .doc, .docx, .odt, .rtf</span>
+                      <span className="font-semibold">{t.wordToPdf.uploader.dropzone}</span>
+                      <span className="text-xs text-secondary/60">{t.wordToPdf.uploader.formatSupport}</span>
                     </div>
                   </label>
                 </div>
 
                 <div className="flex flex-col h-full min-h-[250px] justify-between text-left">
                   <div>
-                    <h3 className="text-sm font-bold text-secondary mb-4 uppercase tracking-wider">Archivo seleccionado</h3>
+                    <h3 className="text-sm font-bold text-secondary mb-4 uppercase tracking-wider">{t.wordToPdf.uploader.selectedFile}</h3>
                     {file ? (
                       <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -171,7 +190,7 @@ export default function WordToPdfUploader() {
                     ) : (
                       <div className="h-[100px] flex flex-col items-center justify-center text-secondary/40 border border-border/50 rounded-2xl border-dashed">
                         <FileIcon className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs">No hay archivo seleccionado</p>
+                        <p className="text-xs">{t.wordToPdf.uploader.noFile}</p>
                       </div>
                     )}
                   </div>
@@ -183,7 +202,7 @@ export default function WordToPdfUploader() {
                       onClick={startConversion}
                       className="mt-6 w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
                     >
-                      Convertir a PDF
+                      {t.wordToPdf.uploader.title}
                       <FileIcon className="w-5 h-5" />
                     </motion.button>
                   )}
@@ -204,10 +223,10 @@ export default function WordToPdfUploader() {
                 <Loader2 className="w-20 h-20 text-blue-500 animate-spin" />
               </div>
               <h2 className="text-3xl font-bold mb-4">
-                {status === "uploading" ? "Subiendo archivo..." : "Generando PDF con LibreOffice..."}
+                {status === "uploading" ? t.wordToPdf.uploader.loading1 : t.wordToPdf.uploader.loading2}
               </h2>
               <p className="text-secondary max-w-sm mx-auto">
-                Estamos utilizando un motor de renderizado profesional para asegurar que tu diseño se mantenga intacto.
+                {t.wordToPdf.uploader.loadingDesc}
               </p>
             </motion.div>
           )}
@@ -224,8 +243,8 @@ export default function WordToPdfUploader() {
                   <CheckCircle2 className="w-14 h-14 text-green-500" />
                 </div>
               </div>
-              <h2 className="text-4xl font-bold mb-4">¡Conversión Exitosa!</h2>
-              <p className="text-secondary mb-12">Tu documento de Word ahora es un archivo PDF universal.</p>
+              <h2 className="text-4xl font-bold mb-4">{t.wordToPdf.uploader.success}</h2>
+              <p className="text-secondary mb-12">{t.wordToPdf.uploader.successDesc}</p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <a
@@ -233,19 +252,27 @@ export default function WordToPdfUploader() {
                   download={file ? file.name.replace(/\.[^/.]+$/, "") + ".pdf" : "documento.pdf"}
                   className="px-12 py-5 bg-blue-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3"
                 >
-                  Descargar PDF
+                  {t.wordToPdf.uploader.btnDownload}
                   <Download className="w-5 h-5" />
                 </a>
                 <button
                   onClick={reset}
                   className="px-12 py-5 bg-accent text-accent-foreground rounded-2xl font-bold hover:bg-accent/80 transition-all border border-border"
                 >
-                  Convertir Otro
+                  {t.wordToPdf.uploader.btnReset}
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

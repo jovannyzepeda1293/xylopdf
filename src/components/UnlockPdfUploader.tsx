@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { generateThumbnail } from "@/lib/pdf-preview";
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -29,6 +31,14 @@ export default function UnlockPdfUploader() {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -44,9 +54,13 @@ export default function UnlockPdfUploader() {
 
   const handleUnlock = async () => {
     if (!file || !password) {
-      setErrorMessage(t.uploader.errorMissingPasswordUnlock);
+      setErrorMessage(t.unlockPdf.uploader.errorMissingPasswordUnlock);
       return;
     }
+
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
 
     setStatus('processing');
     setProgress(0);
@@ -61,7 +75,7 @@ export default function UnlockPdfUploader() {
         setProgress(prev => (prev < 90 ? prev + 10 : 90));
       }, 200);
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/unlock-pdf', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/unlock-pdf`, {
         method: 'POST',
         body: formData,
       });
@@ -71,12 +85,16 @@ export default function UnlockPdfUploader() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || t.uploader.errorUnlock);
+        throw new Error(data.detail || t.unlockPdf.uploader.errorUnlock);
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+      
+      // Increment usage on success
+      await incrementUsage();
+      
       setStatus('completed');
     } catch (err: any) {
       setErrorMessage(err.message || t.uploader.errorUnexpected);
@@ -146,8 +164,8 @@ export default function UnlockPdfUploader() {
                         <div className="p-4 bg-slate-400/10 rounded-full group-hover:bg-slate-400/20 group-hover:text-slate-500 transition-colors">
                           <Unlock className="w-8 h-8" />
                         </div>
-                        <span className="font-bold text-lg">{t.uploader.dropzoneUnlock}</span>
-                        <span className="text-sm text-secondary">{t.uploader.formatSupportPdf}</span>
+                        <span className="font-bold text-lg">{t.unlockPdf.uploader.dropzoneUnlock}</span>
+                        <span className="text-sm text-secondary">{t.unlockPdf.uploader.formatSupportPdf}</span>
                       </div>
                     </div>
                   ) : (
@@ -163,7 +181,7 @@ export default function UnlockPdfUploader() {
                         {thumbnail ? (
                           <img src={thumbnail} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">{t.uploader.loading}</div>
+                          <div className="h-full flex items-center justify-center italic text-xs text-secondary/30">{t.common.loading}</div>
                         )}
                         <div className="absolute top-2 right-2 p-1.5 bg-slate-500 rounded-md shadow-lg">
                           <FileText className="w-4 h-4 text-white" />
@@ -281,6 +299,14 @@ export default function UnlockPdfUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

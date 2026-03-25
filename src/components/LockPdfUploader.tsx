@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { generateThumbnail } from "@/lib/pdf-preview";
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -29,6 +31,14 @@ export default function LockPdfUploader() {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -48,6 +58,10 @@ export default function LockPdfUploader() {
       return;
     }
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus('processing');
     setProgress(0);
     setErrorMessage('');
@@ -61,7 +75,7 @@ export default function LockPdfUploader() {
         setProgress(prev => (prev < 90 ? prev + 10 : 90));
       }, 200);
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/lock-pdf', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/lock-pdf`, {
         method: 'POST',
         body: formData,
       });
@@ -77,6 +91,10 @@ export default function LockPdfUploader() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
+
       setStatus('completed');
     } catch (err: any) {
       setErrorMessage(err.message || t.uploader.errorUnexpected);
@@ -281,6 +299,14 @@ export default function LockPdfUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

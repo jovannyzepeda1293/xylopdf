@@ -15,10 +15,27 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email", placeholder: "tu@email.com" },
         password: { label: "Contraseña", type: "password" },
+        recaptchaToken: { label: "Recaptcha", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email || !credentials?.password || !credentials?.recaptchaToken) {
           throw new Error("Credenciales inválidas");
+        }
+
+        // Verificar reCAPTCHA
+        try {
+          const recaptchaRes = await fetch(
+            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${credentials.recaptchaToken}`,
+            { method: "POST" }
+          );
+          const recaptchaData = await recaptchaRes.json();
+          if (!recaptchaData.success) {
+            console.error("NextAuth Security: FALLO verificación reCAPTCHA para:", credentials.email);
+            throw new Error("Bot detectado");
+          }
+        } catch (e) {
+          console.error("NextAuth Security Error reCAPTCHA:", e);
+          throw new Error("Error en verificación de seguridad");
         }
 
         const user = await prisma.user.findUnique({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 
 interface UsageResult {
@@ -17,50 +17,45 @@ export function useUsageLimit() {
   const [usageInfo, setUsageInfo] = useState<UsageResult | null>(null);
 
   const checkLimit = useCallback(async () => {
-    // 1. Client-side check (fast path)
-    if (typeof window !== "undefined") {
-      const cookieVal = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("pdf_limit_hit="));
-      
-      if (cookieVal) {
-        // We know we hit it already today (could be old though, but backend will confirm)
-        // If we want to be strict, we'd store the expiration date in cookie too
-      }
-    }
-
     setLoading(true);
     try {
+      // Si ya sabemos por la sesión que es premium, permitimos directo
+      if (session?.user?.subscriptionActive) {
+        const info = { allowed: true, remaining: Infinity, isSubscribed: true, resetTime: 0 };
+        setUsageInfo(info);
+        return true;
+      }
+
+      // Consultar al API para validación robusta (DB + IP)
       const res = await fetch("/api/usage/check");
-      if (!res.ok) throw new Error("Failed to check usage");
+      if (!res.ok) throw new Error("Failed to check limit");
       
       const data: UsageResult = await res.json();
       setUsageInfo(data);
 
-      if (!data.allowed && !data.isSubscribed) {
+      if (!data.allowed) {
         setShowLimitModal(true);
-        // Set cookie to remember for today (optional but follows user request)
-        const tomorrow = new Date();
-        tomorrow.setHours(23, 59, 59, 999);
-        document.cookie = `pdf_limit_hit=1; expires=${tomorrow.toUTCString()}; path=/`;
         return false;
       }
       return true;
     } catch (error) {
-      console.error("Usage limit check error:", error);
-      return true; // Fail open
+      console.error("Usage limit check failed:", error);
+      // Fallback: permitir en caso de error de red para no bloquear al usuario injustamente
+      return true;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session]);
 
   const incrementUsage = useCallback(async () => {
+    if (session?.user?.subscriptionActive) return;
+
     try {
       await fetch("/api/usage/increment", { method: "POST" });
-    } catch (e) {
-      console.error("Failed to increment usage:", e);
+    } catch (error) {
+      console.error("Failed to increment usage:", error);
     }
-  }, []);
+  }, [session]);
 
   return {
     checkLimit,
@@ -72,3 +67,4 @@ export function useUsageLimit() {
     isLoggedIn: !!session?.user
   };
 }
+

@@ -8,6 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { useUsageLimit } from '@/hooks/useUsageLimit';
+import LimitModal from '@/components/LimitModal';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -25,6 +27,14 @@ export default function WatermarkUploader() {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -38,6 +48,12 @@ export default function WatermarkUploader() {
   };
 
   const startRemoval = async (fileToProcess: File) => {
+    if (!fileToProcess) return;
+
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus('processing');
     setProgress(0);
     setErrorMessage('');
@@ -50,7 +66,7 @@ export default function WatermarkUploader() {
         setProgress(prev => (prev < 90 ? prev + 5 : 90));
       }, 300);
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/remove-watermark', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/remove-watermark`, {
         method: 'POST',
         body: formData,
       });
@@ -66,6 +82,10 @@ export default function WatermarkUploader() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+
+      // Increment usage
+      await incrementUsage();
+
       setStatus('completed');
     } catch (err: any) {
       setErrorMessage(err.message || t.uploader.errorUnexpected);
@@ -213,6 +233,14 @@ export default function WatermarkUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

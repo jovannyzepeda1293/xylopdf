@@ -81,7 +81,7 @@ export default function ImageToPdfUploader() {
         setProgress(prev => (prev >= 90 ? 90 : prev + 5));
       }, 500);
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/image-to-pdf", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/image-to-pdf`, {
         method: "POST",
         body: formData,
       });
@@ -178,7 +178,7 @@ export default function ImageToPdfUploader() {
                   </label>
                 </div>
 
-                <div className="flex flex-col h-full min-h-[350px] justify-between text-left">
+                <div className="flex flex-col h-full min-h-[250px] justify-between text-left">
                   <div>
                     <h3 className="text-sm font-bold text-secondary mb-4 uppercase tracking-wider">{t.uploader.selectedImages} ({files.length})</h3>
                     {files.length > 0 ? (
@@ -212,7 +212,7 @@ export default function ImageToPdfUploader() {
                         </AnimatePresence>
                       </div>
                     ) : (
-                      <div className="h-[150px] flex flex-col items-center justify-center text-secondary/40 border border-border/50 rounded-2xl border-dashed">
+                      <div className="h-[100px] flex flex-col items-center justify-center text-secondary/40 border border-border/50 rounded-2xl border-dashed">
                         <Files className="w-8 h-8 mb-2 opacity-20" />
                         <p className="text-xs">{t.uploader.noImages}</p>
                       </div>

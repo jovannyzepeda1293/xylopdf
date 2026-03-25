@@ -6,6 +6,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { generateThumbnail } from "@/lib/pdf-preview";
 import { useI18n } from "@/lib/i18n/I18nContext";
+import { useUsageLimit } from "@/hooks/useUsageLimit";
+import LimitModal from "@/components/LimitModal";
 
 interface FileWithPreview {
   file: File;
@@ -19,6 +21,14 @@ export default function WordUploader() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { 
+    checkLimit, 
+    incrementUsage, 
+    showLimitModal, 
+    setShowLimitModal, 
+    usageInfo, 
+    isLoggedIn 
+  } = useUsageLimit();
   const [convertedFilename, setConvertedFilename] = useState("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +60,10 @@ export default function WordUploader() {
       return;
     }
 
+    // Check usage limit
+    const isAllowed = await checkLimit();
+    if (!isAllowed) return;
+
     setStatus("uploading");
     setErrorMessage("");
     setProgress(0);
@@ -69,7 +83,7 @@ export default function WordUploader() {
         });
       }, 300);
 
-      const response = await fetch("http://localhost:8000/pdf-to-word", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/pdf-to-word`, {
         method: "POST",
         body: formData,
       });
@@ -88,6 +102,9 @@ export default function WordUploader() {
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
       setConvertedFilename(file.file.name.replace(".pdf", ".docx"));
+
+      // Increment usage
+      await incrementUsage();
 
       setTimeout(() => {
         setStatus("completed");
@@ -281,6 +298,14 @@ export default function WordUploader() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Limit Modal */}
+        <LimitModal 
+          show={showLimitModal} 
+          onClose={() => setShowLimitModal(false)}
+          resetTime={usageInfo?.resetTime || 0}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );
