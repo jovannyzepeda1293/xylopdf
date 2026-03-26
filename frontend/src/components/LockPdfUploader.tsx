@@ -165,7 +165,7 @@ export default function LockPdfUploader() {
                           <Lock className="w-8 h-8" />
                         </div>
                         <span className="font-bold text-lg">{t.uploader.dropzoneLock}</span>
-                        <span className="text-sm text-secondary">{t.uploader.formatSupportPdf}</span>
+                        <span className="text-sm text-secondary">{t.uploader.formatSupport}</span>
                       </div>
                     </div>
                   ) : (

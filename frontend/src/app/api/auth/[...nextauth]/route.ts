@@ -68,9 +68,9 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.avatarUrl,
-          isConfirmed: user.isConfirmed,
+          isConfirmed: !!user.isConfirmed,
           subscriptionActive: isSubActive,
-          canceled: (user.subscription as any)?.canceled || false,
+          canceled: !!(user.subscription as any)?.canceled,
         };
       },
     }),
@@ -122,21 +122,21 @@ export const authOptions: NextAuthOptions = {
           });
           if (dbUser) {
             token.id = dbUser.id.toString();
-            token.isConfirmed = dbUser.isConfirmed;
+            token.isConfirmed = !!dbUser.isConfirmed;
             if (dbUser.subscription) {
               const sub = dbUser.subscription;
               token.subscriptionActive = sub.status === 1 && (sub.expiresAt ? sub.expiresAt > new Date() : false);
-              token.expiresAt = sub.expiresAt?.toISOString();
-              token.customerId = sub.customerId;
-              token.subscriptionId = sub.subscriptionId;
-              token.canceled = sub.canceled;
+              token.expiresAt = sub.expiresAt?.toISOString() || null;
+              token.customerId = sub.customerId || null;
+              token.subscriptionId = sub.subscriptionId || null;
+              token.canceled = !!sub.canceled;
             }
           }
         } else {
           const u = user as any;
           token.id = u.id;
-          token.isConfirmed = u.isConfirmed;
-          token.subscriptionActive = u.subscriptionActive;
+          token.isConfirmed = !!u.isConfirmed;
+          token.subscriptionActive = !!u.subscriptionActive;
           // Para credenciales, necesitamos buscar el resto de datos de sub
           const sub = await prisma.subscription.findUnique({ where: { userId: parseInt(u.id) } });
           if (sub) {
@@ -158,7 +158,7 @@ export const authOptions: NextAuthOptions = {
             include: { subscription: true }
           });
           if (userInDb) {
-            token.isConfirmed = userInDb.isConfirmed;
+            token.isConfirmed = !!userInDb.isConfirmed;
             if (userInDb.subscription) {
               const subId = userInDb.id;
               // Consulta directa para evitar caché de Prisma

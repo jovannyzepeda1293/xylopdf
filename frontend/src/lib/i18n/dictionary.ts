@@ -899,6 +899,7 @@ export const dictionary = {
       btnDownloadMerge: "Descargar PDF Unido",
       btnReset: "Procesar otro",
       btnResetMerge: "Unir otros más",
+      btnResetCompare: "Nueva comparación",
       formatSupport: "Formato compatible: .pdf",
       btnSelect: "Seleccionar archivo",
       errorOnlyPdf: "Solo se permiten archivos PDF.",
