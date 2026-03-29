@@ -110,6 +110,10 @@ async def stripe_webhook(request: Request):
         except:
             raise HTTPException(status_code=400, detail=str(e))
 
+    # Convert to dict if it's a stripe object (SDK v8+)
+    if not isinstance(event, dict) and hasattr(event, "to_dict"):
+        event = event.to_dict()
+
     data = event.get('data', {}).get('object', {})
     event_type = event.get('type')
 
