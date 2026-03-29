@@ -1,6 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Response, Form, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Response, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, StreamingResponse
 import stripe
+import asyncio
+import redis.asyncio as aioredis
 from fastapi.middleware.cors import CORSMiddleware
 from pdf2docx import Converter
 from pypdf import PdfWriter, PdfReader
@@ -28,6 +30,7 @@ load_dotenv()
 # Redis Config for security/banning
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 r = redis.from_url(redis_url, decode_responses=True)
+async_r = aioredis.from_url(redis_url, decode_responses=True)
 BAN_THRESHOLD = int(os.getenv("BAN_THRESHOLD", "10"))
 BAN_DURATION = 3600 # 1 hour in seconds
 
@@ -61,6 +64,84 @@ def get_db_connection():
 # Stripe Config
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        # user_id -> list of websockets
+        self.active_connections: dict[str, list[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        user_id = str(user_id)
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
+        print(f"WS: User {user_id} connected. Total users connected: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket, user_id: str):
+        user_id = str(user_id)
+        if user_id in self.active_connections:
+            if websocket in self.active_connections[user_id]:
+                self.active_connections[user_id].remove(websocket)
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+        print(f"WS: User {user_id} disconnected.")
+
+    async def send_personal_message(self, message: dict, user_id: str):
+        user_id = str(user_id)
+        if user_id in self.active_connections:
+            for connection in self.active_connections[user_id]:
+                try:
+                    await connection.send_json(message)
+                except Exception as e:
+                    print(f"WS Error sending to {user_id}: {e}")
+
+manager = ConnectionManager()
+
+# Background task to listen to Redis and broadcast to WebSockets
+async def redis_listener():
+    pubsub = async_r.pubsub()
+    await pubsub.subscribe("user_updates")
+    print("WS: Started Redis PubSub listener for 'user_updates'")
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    data = json.loads(message["data"])
+                    user_id = data.get("user_id")
+                    if user_id:
+                        print(f"WS: Internal notification for user {user_id}")
+                        await manager.send_personal_message(data, str(user_id))
+                except Exception as e:
+                    print(f"WS Error processing Redis message: {e}")
+    except Exception as e:
+        print(f"WS Redis listener failed: {e}")
+    finally:
+        await pubsub.unsubscribe("user_updates")
+
+@app.on_event("startup")
+async def startup_event():
+    # Start Redis listener in background
+    asyncio.create_task(redis_listener())
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    print(f"WS Attempting connection for user {user_id}")
+    try:
+        await manager.connect(websocket, user_id)
+        while True:
+            # Keep connection alive
+            # If client sends nothing, this will block.
+            # If client sends heartbeat, we log it.
+            data = await websocket.receive_text()
+            print(f"WS received from {user_id}: {data}")
+    except WebSocketDisconnect:
+        print(f"WS: User {user_id} disconnected (normal).")
+        manager.disconnect(websocket, user_id)
+    except Exception as e:
+        print(f"WS unexpected error for {user_id}: {type(e).__name__}: {e}")
+        manager.disconnect(websocket, user_id)
 
 @app.post("/webhook-stripe")
 async def stripe_webhook(request: Request):
@@ -171,6 +252,13 @@ async def stripe_webhook(request: Request):
                     cur.execute(upsert_query, (user_id, last_payment, expires_at, 1, customer_id, subscription_id))
                     conn.commit()
                     print(f"Python Sub Update: Success for {customer_email}. Expires: {expires_at}")
+                    
+                    # Notify via Redis
+                    r.publish("user_updates", json.dumps({
+                        "user_id": str(user_id),
+                        "type": "subscription_updated",
+                        "status": "active"
+                    }))
                 else:
                     print(f"Python Webhook Warning: Usuario no encontrado para {customer_email}")
                 
