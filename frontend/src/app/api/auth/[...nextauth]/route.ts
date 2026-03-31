@@ -208,6 +208,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 1 * 60 * 60, // 1 hora de sesión (se logout tras 1 hora de inactividad)
+    updateAge: 5 * 60,   // Refrescar el token cada 5 minutos de actividad
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

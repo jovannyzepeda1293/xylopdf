@@ -29,6 +29,9 @@ import * as pdfjs from 'pdfjs-dist';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Star } from 'lucide-react';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -110,6 +113,7 @@ export default function OrganizePdfUploader() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -353,6 +357,16 @@ export default function OrganizePdfUploader() {
                     )}
                     {t.organizePdf.uploader.title}
                   </button>
+
+                  {!session?.user?.subscriptionActive && (
+                    <Link
+                      href="/unlimited-access"
+                      className="px-6 py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xl font-bold hover:bg-amber-500/20 transition-all flex items-center gap-2 group text-sm"
+                    >
+                      <Star className="w-4 h-4 fill-amber-500" />
+                      {t.navbar.unlimitedAccess}
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -441,6 +455,7 @@ export default function OrganizePdfUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

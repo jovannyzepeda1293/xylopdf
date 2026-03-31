@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Star } from 'lucide-react';
 
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -30,6 +33,7 @@ export default function CompressPdfUploader() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -202,6 +206,16 @@ export default function CompressPdfUploader() {
                     )}
                     {t.compressPdf.uploader.title}
                   </button>
+
+                  {!session?.user?.subscriptionActive && (
+                    <Link
+                      href="/unlimited-access"
+                      className="px-6 py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xl font-bold hover:bg-amber-500/20 transition-all flex items-center gap-2 group text-sm"
+                    >
+                      <Star className="w-4 h-4 fill-amber-500" />
+                      {t.navbar.unlimitedAccess}
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -278,6 +292,7 @@ export default function CompressPdfUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

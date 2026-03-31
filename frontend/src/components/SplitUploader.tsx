@@ -1,13 +1,15 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, File, X, CheckCircle2, Loader2, AlertCircle, Scissors, Download, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { generateThumbnail } from "@/lib/pdf-preview";
 import * as pdfjsLib from 'pdfjs-dist';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Star, Scissors, FileText, Download, X, Upload, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -22,6 +24,7 @@ export default function SplitUploader() {
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [numFiles, setNumFiles] = useState(0);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -263,15 +266,27 @@ export default function SplitUploader() {
                     </div>
 
                     {file && (
-                      <motion.button
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        onClick={startSplit}
-                        className="w-full py-5 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
-                      >
-                        {t.splitPdf.uploader.title}
-                        <Scissors className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                      </motion.button>
+                      <div className="space-y-3">
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          onClick={startSplit}
+                          className="w-full py-5 bg-primary text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
+                        >
+                          {t.splitPdf.uploader.title}
+                          <Scissors className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        </motion.button>
+
+                        {!session?.user?.subscriptionActive && (
+                          <Link
+                            href="/unlimited-access"
+                            className="w-full py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 group text-sm"
+                          >
+                            <Star className="w-4 h-4 fill-amber-500" />
+                            {t.navbar.unlimitedAccess}
+                          </Link>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -350,6 +365,7 @@ export default function SplitUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

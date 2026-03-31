@@ -13,6 +13,9 @@ import { generateThumbnail } from '@/lib/pdf-preview';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { Star } from "lucide-react";
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -40,6 +43,7 @@ const AddWatermarkUploader = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -476,33 +480,45 @@ const AddWatermarkUploader = () => {
                 </div>
 
                 <div className="pt-4">
-                  <button
-                    onClick={handleMainButtonClick}
-                    disabled={status === 'processing'}
-                    className={cn(
-                      "w-full py-5 rounded-2xl font-bold text-xl shadow-2xl transition-all flex items-center justify-center gap-3",
-                      status === 'completed' ? "bg-green-600 text-white shadow-green-500/30" : "bg-primary text-white shadow-primary/30",
-                      status !== 'processing' && "hover:scale-[1.02] active:scale-[0.98]",
-                      status === 'processing' && "opacity-50"
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleMainButtonClick}
+                      disabled={status === 'processing'}
+                      className={cn(
+                        "w-full py-5 rounded-2xl font-bold text-xl shadow-2xl transition-all flex items-center justify-center gap-3",
+                        status === 'completed' ? "bg-green-600 text-white shadow-green-500/30" : "bg-primary text-white shadow-primary/30",
+                        status !== 'processing' && "hover:scale-[1.02] active:scale-[0.98]",
+                        status === 'processing' && "opacity-50"
+                      )}
+                    >
+                      {status === 'processing' ? (
+                        <>
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          {t.watermark.uploader.loading1}
+                        </>
+                      ) : status === 'completed' ? (
+                        <>
+                          <CheckCircle2 className="w-6 h-6" />
+                          {t.watermark.uploader.btnDownloaded}
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-6 h-6" />
+                          {t.watermark.uploader.btnProcess}
+                        </>
+                      )}
+                    </button>
+
+                    {!session?.user?.subscriptionActive && (
+                      <Link
+                        href="/unlimited-access"
+                        className="w-full py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 group text-sm"
+                      >
+                        <Star className="w-4 h-4 fill-amber-500" />
+                        {t.navbar.unlimitedAccess}
+                      </Link>
                     )}
-                  >
-                    {status === 'processing' ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        {t.watermark.uploader.loading1}
-                      </>
-                    ) : status === 'completed' ? (
-                      <>
-                        <CheckCircle2 className="w-6 h-6" />
-                        {t.watermark.uploader.btnDownloaded}
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-6 h-6" />
-                        {t.watermark.uploader.btnProcess}
-                      </>
-                    )}
-                  </button>
+                  </div>
                   
                   {status === 'completed' && (
                     <motion.button
@@ -530,6 +546,7 @@ const AddWatermarkUploader = () => {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

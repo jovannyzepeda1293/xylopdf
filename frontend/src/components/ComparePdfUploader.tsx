@@ -8,6 +8,9 @@ import { generateThumbnail } from "@/lib/pdf-preview";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { Star } from "lucide-react";
 
 interface FileWithPreview {
   file: File;
@@ -34,6 +37,7 @@ export default function ComparePdfUploader() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<CompareResult | null>(null);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -198,13 +202,25 @@ export default function ComparePdfUploader() {
               </div>
 
               {files.length === 2 && (
-                <button 
-                  onClick={startComparison}
-                  className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
-                >
-                  <Search className="w-6 h-6" />
-                  {t.comparePdf.uploader.title}
-                </button>
+                <div className="space-y-3">
+                  <button 
+                    onClick={startComparison}
+                    className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+                  >
+                    <Search className="w-6 h-6" />
+                    {t.comparePdf.uploader.title}
+                  </button>
+
+                  {!session?.user?.subscriptionActive && (
+                    <Link
+                      href="/unlimited-access"
+                      className="w-full py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 group text-sm"
+                    >
+                      <Star className="w-4 h-4 fill-amber-500" />
+                      {t.navbar.unlimitedAccess}
+                    </Link>
+                  )}
+                </div>
               )}
             </motion.div>
           )}
@@ -277,6 +293,7 @@ export default function ComparePdfUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

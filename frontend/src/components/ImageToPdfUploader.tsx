@@ -7,10 +7,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/I18nContext";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useUsageLimit } from "@/hooks/useUsageLimit";
 import LimitModal from "@/components/LimitModal";
-import { useI18n } from "@/lib/i18n/I18nContext";
+import { Star } from "lucide-react";
 
 export default function ImageToPdfUploader() {
   const { t } = useI18n();
@@ -19,6 +21,7 @@ export default function ImageToPdfUploader() {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -220,15 +223,27 @@ export default function ImageToPdfUploader() {
                   </div>
 
                   {files.length > 0 && (
-                    <motion.button
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={startConversion}
-                      className="mt-6 w-full py-4 bg-teal-600 text-white rounded-2xl font-bold shadow-xl shadow-teal-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-                    >
-                      {t.imageToPdf.uploader.title} ({files.length})
-                      <FileIcon className="w-5 h-5" />
-                    </motion.button>
+                    <div className="space-y-3 mt-6">
+                      <motion.button
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={startConversion}
+                        className="w-full py-4 bg-teal-600 text-white rounded-2xl font-bold shadow-xl shadow-teal-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                      >
+                        {t.imageToPdf.uploader.title} ({files.length})
+                        <FileIcon className="w-5 h-5" />
+                      </motion.button>
+
+                      {!session?.user?.subscriptionActive && (
+                        <Link
+                          href="/unlimited-access"
+                          className="w-full py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 group text-sm"
+                        >
+                          <Star className="w-4 h-4 fill-amber-500" />
+                          {t.navbar.unlimitedAccess}
+                        </Link>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -296,6 +311,7 @@ export default function ImageToPdfUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

@@ -11,10 +11,11 @@ interface LimitModalProps {
   onClose: () => void;
   resetTime?: number; // milliseconds
   isLoggedIn: boolean;
+  isExpired?: boolean;
 }
 
-export default function LimitModal({ show, onClose, resetTime = 0, isLoggedIn }: LimitModalProps) {
-  const { t } = useI18n();
+export default function LimitModal({ show, onClose, resetTime = 0, isLoggedIn, isExpired = false }: LimitModalProps) {
+  const { t, lang } = useI18n();
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
@@ -70,11 +71,13 @@ export default function LimitModal({ show, onClose, resetTime = 0, isLoggedIn }:
               </div>
               
               <h2 className="text-2xl font-black mb-3 tracking-tight">
-                {t.limitModal.title}
+                {isExpired ? (lang === 'es' ? 'Suscripción Expirada' : 'Subscription Expired') : t.limitModal.title}
               </h2>
               
               <p className="text-secondary mb-6 leading-relaxed text-sm">
-                {t.limitModal.desc}
+                {isExpired 
+                  ? (lang === 'es' ? 'Tu plan ha expirado. Renueva ahora para seguir disfrutando de acceso ilimitado sin esperas.' : 'Your plan has expired. Renew now to keep enjoying unlimited access without waiting.')
+                  : t.limitModal.desc}
               </p>
 
               {resetTime > 0 && (

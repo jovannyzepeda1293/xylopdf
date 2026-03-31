@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Star } from 'lucide-react';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -27,6 +30,7 @@ export default function WatermarkUploader() {
   const [errorMessage, setErrorMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -144,6 +148,18 @@ export default function WatermarkUploader() {
                   <Upload className="w-4 h-4" />
                   {t.uploader.btnSelect}
                 </div>
+
+                {!session?.user?.subscriptionActive && (
+                  <div className="mt-8 pt-6 border-t border-border/50">
+                    <Link
+                      href="/unlimited-access"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xl font-bold hover:bg-amber-500/20 transition-all text-sm group"
+                    >
+                      <Star className="w-4 h-4 fill-amber-500" />
+                      {t.navbar.unlimitedAccess}
+                    </Link>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -240,6 +256,7 @@ export default function WatermarkUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

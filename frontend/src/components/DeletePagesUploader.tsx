@@ -11,6 +11,9 @@ import { generateThumbnail } from "@/lib/pdf-preview";
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import LimitModal from '@/components/LimitModal';
 import { useI18n } from "@/lib/i18n/I18nContext";
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Star } from 'lucide-react';
 
 export default function DeletePagesUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +24,7 @@ export default function DeletePagesUploader() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const { t } = useI18n();
+  const { data: session } = useSession();
   const { 
     checkLimit, 
     incrementUsage, 
@@ -207,15 +211,27 @@ export default function DeletePagesUploader() {
                     </div>
 
                     {file && (
-                      <motion.button
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        onClick={handleDeletePages}
-                        className="w-full py-5 bg-red-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
-                      >
-                        {t.deletePages.uploader.btnProcess}
-                        <Trash2 className="w-5 h-5" />
-                      </motion.button>
+                      <div className="space-y-3">
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          onClick={handleDeletePages}
+                          className="w-full py-5 bg-red-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 group"
+                        >
+                          {t.deletePages.uploader.btnProcess}
+                          <Trash2 className="w-5 h-5" />
+                        </motion.button>
+
+                        {!session?.user?.subscriptionActive && (
+                          <Link
+                            href="/unlimited-access"
+                            className="w-full py-3 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-2xl font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-2 group text-sm"
+                          >
+                            <Star className="w-4 h-4 fill-amber-500" />
+                            {t.navbar.unlimitedAccess}
+                          </Link>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -288,6 +304,7 @@ export default function DeletePagesUploader() {
           onClose={() => setShowLimitModal(false)}
           resetTime={usageInfo?.resetTime || 0}
           isLoggedIn={isLoggedIn}
+          isExpired={usageInfo?.isExpired}
         />
       </div>
     </div>

@@ -2,7 +2,15 @@ import { prisma } from "@/lib/prisma";
 
 export const USAGE_LIMIT = 2;
 
-export async function checkUsageLimit(userId?: string, ip?: string) {
+interface UsageResult {
+  allowed: boolean;
+  remaining: number;
+  isSubscribed: boolean;
+  isExpired: boolean;
+  resetTime: number;
+}
+
+export async function checkUsageLimit(userId?: string, ip?: string): Promise<UsageResult> {
   const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -17,8 +25,16 @@ export async function checkUsageLimit(userId?: string, ip?: string) {
       where: { userId: parseInt(userId) },
     });
 
-    if (subscription && subscription.status === 1 && subscription.expiresAt && subscription.expiresAt > new Date()) {
-      return { allowed: true, remaining: Infinity, isSubscribed: true, resetTime: 0 };
+    const isSubscribed = subscription && 
+      subscription.status === 1 && 
+      subscription.expiresAt && 
+      subscription.expiresAt > now;
+
+    const isExpired = !!(subscription && 
+      (subscription.status === 0 || (subscription.expiresAt && subscription.expiresAt <= now)));
+
+    if (isSubscribed) {
+      return { allowed: true, remaining: Infinity, isSubscribed: true, isExpired: false, resetTime: 0 };
     }
 
     // Check user daily limits
@@ -28,7 +44,7 @@ export async function checkUsageLimit(userId?: string, ip?: string) {
         select: { dailyConversions: true, lastConversionDate: true },
       });
 
-      if (!user) return { allowed: false, remaining: 0, isSubscribed: false, resetTime };
+      if (!user) return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
 
       const lastDate = new Date(user.lastConversionDate);
       lastDate.setHours(0, 0, 0, 0);
@@ -36,13 +52,13 @@ export async function checkUsageLimit(userId?: string, ip?: string) {
       const count = lastDate.getTime() === today.getTime() ? user.dailyConversions : 0;
 
       if (count >= USAGE_LIMIT) {
-        return { allowed: false, remaining: 0, isSubscribed: false, resetTime };
+        return { allowed: false, remaining: 0, isSubscribed: false, isExpired, resetTime };
       }
 
-      return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, resetTime };
+      return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, isExpired, resetTime };
     } catch (e) {
       console.warn("User usage tracking error:", e);
-      return { allowed: true, remaining: 1, isSubscribed: false, resetTime };
+      return { allowed: true, remaining: 1, isSubscribed: false, isExpired, resetTime };
     }
   } else if (ip) {
     // Guest usage
@@ -51,7 +67,7 @@ export async function checkUsageLimit(userId?: string, ip?: string) {
     });
 
     if (!guestUsage) {
-      return { allowed: true, remaining: USAGE_LIMIT, isSubscribed: false, resetTime };
+      return { allowed: true, remaining: USAGE_LIMIT, isSubscribed: false, isExpired: false, resetTime };
     }
 
     const lastDate = new Date(guestUsage.lastConversionDate);
@@ -60,13 +76,13 @@ export async function checkUsageLimit(userId?: string, ip?: string) {
     const count = lastDate.getTime() === today.getTime() ? guestUsage.count : 0;
 
     if (count >= USAGE_LIMIT) {
-      return { allowed: false, remaining: 0, isSubscribed: false, resetTime };
+      return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
     }
 
-    return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, resetTime };
+    return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, isExpired: false, resetTime };
   }
 
-  return { allowed: false, remaining: 0, isSubscribed: false, resetTime };
+  return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
 }
 
 export async function incrementUsage(userId?: string, ip?: string) {
