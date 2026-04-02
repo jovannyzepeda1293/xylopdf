@@ -25,7 +25,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 2. IP-based detection (if no saved preference)
     const detectLanguage = async () => {
       try {
-        const res = await fetch('https://ipapi.co/json/');
+        const res = await fetch('https://ipwho.is/');
         const data = await res.json();
         
         // Spanish-speaking countries (ISO codes)
