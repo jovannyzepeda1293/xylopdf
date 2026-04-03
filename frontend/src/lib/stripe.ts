@@ -6,7 +6,7 @@ export const stripe = new Stripe(stripeSecret, {
   apiVersion: '2023-10-16' as any,
 });
 
-export async function createStripeCustomer(userData: { name: string; email: string; lang?: string }) {
+export async function createStripeCustomer(userData: { name: string; email: string; lang?: string; country?: string }) {
   const customer = await stripe.customers.create({
     name: userData.name,
     email: userData.email,
@@ -43,8 +43,13 @@ export async function createStripeSubscription(customerId: string, priceId: stri
   return subscription;
 }
 
-export async function createStripeCheckoutSession(userData: { name: string; email: string; lang?: string }) {
-  let priceId = process.env.STRIPE_PRICE_ID;
+export async function createStripeCheckoutSession(userData: { name: string; email: string; lang?: string; country?: string }) {
+  const language = userData.lang || 'es';
+  // Usar el precio de inglés si el idioma es 'en' y la variable existe, de lo contrario usar el default
+  let priceId = (language === 'en' && process.env.STRIPE_PRICE_ID_EN) 
+    ? process.env.STRIPE_PRICE_ID_EN 
+    : process.env.STRIPE_PRICE_ID;
+
   if (!priceId) throw new Error("STRIPE_PRICE_ID no configurada");
 
   // Si el usuario puso un Product ID instead of Price ID, buscamos el precio
@@ -67,12 +72,14 @@ export async function createStripeCheckoutSession(userData: { name: string; emai
         quantity: 1,
       },
     ],
+    locale: (userData.lang || 'es') as any,
     mode: 'subscription',
     success_url: `${process.env.NEXTAUTH_URL}/tools?status=success`,
     cancel_url: `${process.env.NEXTAUTH_URL}/activate-premium?status=failure`,
     metadata: {
       email: userData.email,
       lang: userData.lang || 'es',
+      country: userData.country || 'unknown',
     },
   });
 

@@ -48,6 +48,7 @@ model Subscription {
   customerId      String?   @unique @map("customer_id")
   subscriptionId  String?   @unique @map("subscription_id")
   canceled        Boolean   @default(false)
+  country         String?   @db.VarChar(10)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(3)
 
   @@map("subscriptions")

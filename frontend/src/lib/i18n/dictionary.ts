@@ -9,7 +9,8 @@ export const dictionary = {
       unlimited: "Acceso Ilimitado",
       myAccount: "Mi Cuenta",
       logout: "Cerrar sesión",
-      unlimitedAccess: "Obtener Acceso Ilimitado"
+      unlimitedAccess: "Obtener Acceso Ilimitado",
+      edit: "Editar"
     },
     common: {
       howToUse: "¿Cómo usar esta herramienta?",
@@ -945,7 +946,8 @@ export const dictionary = {
       unlimited: "Unlimited Access",
       myAccount: "My Account",
       logout: "Logout",
-      unlimitedAccess: "Get Unlimited Access"
+      unlimitedAccess: "Get Unlimited Access",
+      edit: "Edit"
     },
     common: {
       howToUse: "How to use this tool?",

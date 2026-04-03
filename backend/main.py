@@ -237,9 +237,12 @@ async def stripe_webhook(request: Request):
                     
                     last_payment = datetime.now(timezone.utc)
                     
+                    # Extraer el país del cliente (Invoice o Checkout session)
+                    country = data.get("customer_address", {}).get("country") or data.get("customer_details", {}).get("address", {}).get("country") or data.get("metadata", {}).get("country")
+                    
                     upsert_query = """
-                    INSERT INTO subscriptions (user_id, last_payment_date, expires_at, status, customer_id, subscription_id, canceled, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, FALSE, CURRENT_TIMESTAMP)
+                    INSERT INTO subscriptions (user_id, last_payment_date, expires_at, status, customer_id, subscription_id, canceled, updated_at, country)
+                    VALUES (%s, %s, %s, %s, %s, %s, FALSE, CURRENT_TIMESTAMP, %s)
                     ON CONFLICT (user_id) DO UPDATE SET
                         last_payment_date = EXCLUDED.last_payment_date,
                         expires_at = EXCLUDED.expires_at,
@@ -247,9 +250,10 @@ async def stripe_webhook(request: Request):
                         customer_id = EXCLUDED.customer_id,
                         subscription_id = EXCLUDED.subscription_id,
                         canceled = FALSE,
-                        updated_at = CURRENT_TIMESTAMP;
+                        updated_at = CURRENT_TIMESTAMP,
+                        country = EXCLUDED.country;
                     """
-                    cur.execute(upsert_query, (user_id, last_payment, expires_at, 1, customer_id, subscription_id))
+                    cur.execute(upsert_query, (user_id, last_payment, expires_at, 1, customer_id, subscription_id, country))
                     conn.commit()
                     print(f"Python Sub Update: Success for {customer_email}. Expires: {expires_at}")
                     

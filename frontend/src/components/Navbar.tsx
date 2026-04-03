@@ -59,6 +59,9 @@ function NavbarContent() {
           <Link href="/tools?tab=Conversion" className="text-sm font-medium hover:text-primary transition-colors">
             {t.navbar.convert}
           </Link>
+          <Link href="/tools?tab=Editing" className="text-sm font-medium hover:text-primary transition-colors">
+            {t.navbar.edit}
+          </Link>
           <Link href="/tools?tab=Optimization" className="text-sm font-medium hover:text-primary transition-colors">
             {t.navbar.compress}
           </Link>
@@ -122,14 +125,15 @@ function NavbarContent() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 glass shadow-2xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-          <Link href="/tools" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50">{t.navbar.tools}</Link>
-          <Link href="/tools?tab=Conversion" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50">{t.navbar.convert}</Link>
-          <Link href="/tools?tab=Optimization" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50">{t.navbar.compress}</Link>
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white shadow-2xl p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <Link href="/tools" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.tools}</Link>
+          <Link href="/tools?tab=Conversion" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.convert}</Link>
+          <Link href="/tools?tab=Editing" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.edit}</Link>
+          <Link href="/tools?tab=Optimization" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.compress}</Link>
 
           <button
             onClick={() => { setLanguage(lang === 'es' ? 'en' : 'es'); setMobileMenuOpen(false); }}
-            className="flex items-center justify-between py-2 border-b border-border/50 text-sm font-bold"
+            className="flex items-center justify-between py-2 border-b border-border/50 text-sm font-bold text-slate-800"
           >
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -151,7 +155,7 @@ function NavbarContent() {
             </>
           ) : (
             <>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 font-bold">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 font-bold text-slate-800">
                 {t.navbar.login}
               </Link>
               {!isSuccess && (

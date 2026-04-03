@@ -134,7 +134,7 @@ Dado que acabas de conectar a la base de datos de producción, debes crear las t
 
 2. Ejecuta la migración:
    ```bash
-   npx prisma db push
+   docker exec -it pdf-converter-frontend npx prisma db push --url "URL"
    # o si usas migraciones: npx prisma migrate deploy
    ```
 

@@ -14,11 +14,13 @@ export async function POST(req: Request) {
     const { email, name } = session.user;
     const body = await req.json().catch(() => ({}));
     const clientLang = body.lang || 'es';
+    const clientCountry = body.country;
 
     const checkoutSession = await createStripeCheckoutSession({ 
       name: name || "Cliente Premium", 
       email: email as string,
-      lang: clientLang
+      lang: clientLang,
+      country: clientCountry
     });
 
     return NextResponse.json({ 
