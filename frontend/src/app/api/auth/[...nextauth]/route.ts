@@ -22,22 +22,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Credenciales inválidas");
         }
 
-        // Verificar reCAPTCHA
-        try {
-          const recaptchaRes = await fetch(
-            `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${credentials.recaptchaToken}`,
-            { method: "POST" }
-          );
-          const recaptchaData = await recaptchaRes.json();
-          if (!recaptchaData.success) {
-            console.error("NextAuth Security: FALLO verificación reCAPTCHA para:", credentials.email);
-            throw new Error("Bot detectado");
-          }
-        } catch (e) {
-          console.error("NextAuth Security Error reCAPTCHA:", e);
-          throw new Error("Error en verificación de seguridad");
-        }
-
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email,
@@ -50,6 +34,33 @@ export const authOptions: NextAuthOptions = {
         if (!user || !user.passwordHash) {
           throw new Error("Credenciales inválidas");
         }
+
+        const isAutoLogin = credentials.recaptchaToken === "registro-inmediato";
+        const wasJustCreated = user.createdAt && (Date.now() - new Date(user.createdAt).getTime() < 30000);
+
+        if (isAutoLogin && !wasJustCreated) {
+          throw new Error("Solicitud de auto-login inválida o expirada");
+        }
+
+        if (!isAutoLogin) {
+          // Verificar reCAPTCHA
+          try {
+            const recaptchaRes = await fetch(
+              `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${credentials.recaptchaToken}`,
+              { method: "POST" }
+            );
+            const recaptchaData = await recaptchaRes.json();
+            if (!recaptchaData.success) {
+              console.error("NextAuth Security: FALLO verificación reCAPTCHA para:", credentials.email);
+              throw new Error("Bot detectado");
+            }
+          } catch (e) {
+            console.error("NextAuth Security Error reCAPTCHA:", e);
+            throw new Error("Error en verificación de seguridad");
+          }
+        }
+
+
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,

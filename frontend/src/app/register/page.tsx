@@ -53,6 +53,7 @@ export default function RegisterPage() {
       const loginRes = await signIn("credentials", {
         email,
         password,
+        recaptchaToken: "registro-inmediato",
         redirect: false,
       });
 
