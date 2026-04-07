@@ -25,7 +25,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 2. IP-based detection (if no saved preference)
     const detectLanguage = async () => {
       try {
-        const res = await fetch('https://ipwho.is/');
+        const res = await fetch('http://ip-api.com/json');
         const data = await res.json();
         
         // Spanish-speaking countries (ISO codes)
@@ -34,15 +34,14 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'GT', 'HN', 'MX', 'NI', 'PA', 'PY', 'PE', 'PR', 'ES', 'UY', 'VE'
         ];
 
-        if (spanishSpeakingCountries.includes(data.country_code)) {
+        if (spanishSpeakingCountries.includes(data.countryCode)) {
           setLang('es');
         } else {
           setLang('en');
         }
       } catch (err) {
-        // Fallback to browser language
-        const browserLang = navigator.language.split('-')[0];
-        setLang(browserLang === 'es' ? 'es' : 'en');
+        // Fallback to spanish by default if fetch fails
+        setLang('es');
       }
     };
 

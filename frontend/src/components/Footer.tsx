@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, Facebook, Linkedin, Mail } from "lucide-react";
+import { FileText, Facebook, Linkedin, Mail, Instagram } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useI18n } from "@/lib/i18n/I18nContext";
 
@@ -26,7 +26,11 @@ export default function Footer() {
               {t.footer.desc}
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-2 bg-accent rounded-full hover:text-primary transition-colors"><Facebook className="w-4 h-4" /></a>
+              <a href="https://www.facebook.com/people/Xylo-PDF/61575436934161/" target="_blank" rel="noopener noreferrer" className="p-2 bg-accent rounded-full hover:text-primary transition-colors"><Facebook className="w-4 h-4" /></a>
+              <a href="https://www.instagram.com/xylo_pdf/" target="_blank" rel="noopener noreferrer" className="p-2 bg-accent rounded-full hover:text-primary transition-colors"><Instagram className="w-4 h-4" /></a>
+              <a href="https://www.tiktok.com/@xylo_pdf" target="_blank" rel="noopener noreferrer" className="p-2 bg-accent rounded-full hover:text-primary transition-colors flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+              </a>
               <a href="#" className="p-2 bg-accent rounded-full hover:text-primary transition-colors"><Linkedin className="w-4 h-4" /></a>
             </div>
           </div>
