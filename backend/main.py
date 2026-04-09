@@ -1212,6 +1212,159 @@ async def compare_pdfs(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=f"Error comparando PDFs: {str(e)}")
 
 
+import xml.etree.ElementTree as ET
+import re
+
+@app.post("/expense-report")
+async def expense_report(files: List[UploadFile] = File(...)):
+    if not files:
+        raise HTTPException(status_code=400, detail="No se subieron archivos.")
+    
+    def clean_numeric(val):
+        if not val: return 0.0
+        if isinstance(val, (int, float)): return float(val)
+        # Limpiar caracteres comunes que no son números
+        v = str(val).replace('$', '').replace(' ', '').replace('MXN', '').replace('*', '')
+        
+        # Manejar caso de coma como decimal vs separador de miles
+        if ',' in v and '.' in v:
+            # Si tiene ambos, la coma suele ser miles
+            v = v.replace(',', '')
+        elif ',' in v:
+            # Si solo tiene coma, podría ser decimal (ej. en OCR)
+            # Si hay más de 3 dígitos después de la coma, es probable que no sea decimal
+            parts = v.split(',')
+            if len(parts[-1]) <= 2:
+                v = v.replace(',', '.')
+            else:
+                v = v.replace(',', '')
+        
+        try:
+            return float(v)
+        except:
+            # Limpiar cualquier residuo no numérico extra
+            v = re.sub(r'[^0-9.]', '', v)
+            try:
+                return float(v)
+            except:
+                return 0.0
+
+    rows = []
+    for file in files:
+        data = {
+            "Archivo": file.filename,
+            "Fecha de emisión": "",
+            "RFC del emisor": "",
+            "RFC del receptor": "",
+            "RFC Tercero": "",
+            "Folio fiscal (UUID)": "",
+            "Subtotal": 0.0,
+            "IVA trasladado (16%)": 0.0,
+            "IEPS": 0.0,
+            "IVA Retenido": 0.0,
+            "ISR Retenido": 0.0,
+            "Total": 0.0,
+            "Método y forma de pago": "",
+            "Uso de CFDI": ""
+        }
+        
+        try:
+            content = await file.read()
+            ext = file.filename.split('.')[-1].lower()
+            
+            if ext != 'xml':
+                continue 
+
+            text = ""
+            
+            if ext == 'xml':
+                try:
+                    root = ET.fromstring(content)
+                    # Namespaces SAT 3.3 y 4.0
+                    ns = {
+                        "cfdi": "http://www.sat.gob.mx/cfd/4", 
+                        "cfdi3": "http://www.sat.gob.mx/cfd/3", 
+                        "tfd": "http://www.sat.gob.mx/TimbreFiscalDigital"
+                    }
+                    
+                    comp = root if 'Comprobante' in root.tag else root.find(".//{*}Comprobante")
+                    if comp is not None:
+                        data["Subtotal"] = clean_numeric(comp.get("SubTotal", "0"))
+                        data["Total"] = clean_numeric(comp.get("Total", "0"))
+                        data["Fecha de emisión"] = comp.get("Fecha", "")
+                        data["Método y forma de pago"] = f"{comp.get('MetodoPago', '')} / {comp.get('FormaPago', '')}".strip(" /")
+                        
+                        # Emisor y Receptor con wildcard para namespaces
+                        emisor = comp.find(".//{*}Emisor")
+                        if emisor is not None: data["RFC del emisor"] = emisor.get("Rfc", "")
+                            
+                        receptor = comp.find(".//{*}Receptor")
+                        if receptor is not None:
+                            data["RFC del receptor"] = receptor.get("Rfc", "")
+                            data["Uso de CFDI"] = receptor.get("UsoCFDI", "")
+                            
+                        # RFC Terceros (CFDI 4.0 Complemento Concepto)
+                        tercero = comp.find(".//{*}ACuentaTerceros")
+                        if tercero is not None:
+                            data["RFC Tercero"] = tercero.get("RfcACuentaTerceros", "")
+
+                        # Timbre Fiscal (UUID)
+                        tfd = comp.find(".//{*}TimbreFiscalDigital")
+                        if tfd is not None:
+                            data["Folio fiscal (UUID)"] = tfd.get("UUID", "")
+                        else:
+                            data["Folio fiscal (UUID)"] = comp.get("Folio", comp.get("Serie","") + comp.get("Folio",""))
+                            
+                        # Impuestos Detallados Globales
+                        impuestos_node = None
+                        # El nodo Impuestos debe ser hijo directo del Comprobante para ser el global
+                        for child in comp:
+                            if 'Impuestos' in child.tag:
+                                impuestos_node = child
+                                break
+                        
+                        if impuestos_node is not None:
+                            for t in impuestos_node.findall(".//{*}Traslado"):
+                                imp = t.get("Impuesto")
+                                if imp == "002": data["IVA trasladado (16%)"] = clean_numeric(t.get("Importe", "0"))
+                                elif imp == "003": data["IEPS"] = clean_numeric(t.get("Importe", "0"))
+                                
+                            for r in impuestos_node.findall(".//{*}Retencion"):
+                                imp = r.get("Impuesto")
+                                if imp == "002": data["IVA Retenido"] = clean_numeric(r.get("Importe", "0"))
+                                elif imp == "001": data["ISR Retenido"] = clean_numeric(r.get("Importe", "0"))
+
+                except Exception as e:
+                    print(f"XML error: {e}")
+            
+            rows.append(data)
+        except Exception as e:
+             print(f"File error: {e}")
+        
+    if not rows:
+        raise HTTPException(status_code=400, detail="No se procesaron archivos válidos (sólo XML).")
+
+    df = pd.DataFrame(rows)
+    # Ensure numeric columns
+    num_cols = ["Subtotal", "IVA trasladado (16%)", "IEPS", "IVA Retenido", "ISR Retenido", "Total"]
+    for col in num_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    # Ordenar columnas para el contador
+    cols = ["Archivo", "Fecha de emisión", "RFC del emisor", "RFC del receptor", "Folio fiscal (UUID)", "Subtotal", "IVA trasladado (16%)", "IEPS", "IVA Retenido", "ISR Retenido", "Total", "Método y forma de pago", "Uso de CFDI"]
+    df = df[cols]
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte_Contable')
+        
+    output.seek(0)
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={'Content-Disposition': 'attachment; filename="reporte_gastos.xlsx"'}
+    )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

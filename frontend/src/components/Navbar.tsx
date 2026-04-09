@@ -62,8 +62,8 @@ function NavbarContent() {
           <Link href="/tools?tab=Editing" className="text-sm font-medium hover:text-primary transition-colors">
             {t.navbar.edit}
           </Link>
-          <Link href="/tools?tab=Optimization" className="text-sm font-medium hover:text-primary transition-colors">
-            {t.navbar.compress}
+          <Link href="/tools?tab=Utilities" className="text-sm font-medium hover:text-primary transition-colors">
+            Utilidades
           </Link>
 
           <div className="flex items-center gap-4 ml-4 pl-4 border-l border-border/50">
@@ -129,7 +129,7 @@ function NavbarContent() {
           <Link href="/tools" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.tools}</Link>
           <Link href="/tools?tab=Conversion" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.convert}</Link>
           <Link href="/tools?tab=Editing" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.edit}</Link>
-          <Link href="/tools?tab=Optimization" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">{t.navbar.compress}</Link>
+          <Link href="/tools?tab=Utilities" onClick={() => setMobileMenuOpen(false)} className="py-2 border-b border-border/50 text-slate-800">Utilidades</Link>
 
           <button
             onClick={() => { setLanguage(lang === 'es' ? 'en' : 'es'); setMobileMenuOpen(false); }}

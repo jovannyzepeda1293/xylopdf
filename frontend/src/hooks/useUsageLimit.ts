@@ -17,13 +17,13 @@ export function useUsageLimit() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [usageInfo, setUsageInfo] = useState<UsageResult | null>(null);
 
-  const checkLimit = useCallback(async () => {
+  const checkLimit = useCallback(async (needed: number = 1, limit?: number) => {
     setLoading(true);
     try {
       // Consultar al API para validación robusta (DB + IP)
-      // Eliminamos el check optimista de la sesión para asegurar que se evalúe 
-      // la suscripción en el momento exacto de la acción como solicitó el usuario.
-      const res = await fetch("/api/usage/check");
+      let url = `/api/usage/check?needed=${needed}`;
+      if (limit) url += `&limit=${limit}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to check limit");
       
       const data: UsageResult = await res.json();
@@ -46,18 +46,21 @@ export function useUsageLimit() {
       // Fallback: permitir en caso de error de red para no bloquear al usuario injustamente
       // Pero si tenemos sesión premium, confiamos en ella como último recurso
       if (session?.user?.subscriptionActive) return true;
-      return true;
+      return false; // Estricto: si falla el API y no es premium, bloqueamos para evitar bypass
     } finally {
       setLoading(false);
     }
   }, [session]);
 
-  const incrementUsage = useCallback(async () => {
+  const incrementUsage = useCallback(async (amount: number = 1) => {
     // Si la info de uso dice que está suscrito, no incrementamos
     if (usageInfo?.isSubscribed || session?.user?.subscriptionActive) return;
 
     try {
-      await fetch("/api/usage/increment", { method: "POST" });
+      await fetch("/api/usage/increment", { 
+        method: "POST",
+        body: JSON.stringify({ amount })
+      });
     } catch (error) {
       console.error("Failed to increment usage:", error);
     }

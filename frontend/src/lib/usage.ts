@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export const USAGE_LIMIT = 2;
+export const DEFAULT_LIMIT = 2;
 
 interface UsageResult {
   allowed: boolean;
@@ -10,7 +10,7 @@ interface UsageResult {
   resetTime: number;
 }
 
-export async function checkUsageLimit(userId?: string, ip?: string): Promise<UsageResult> {
+export async function checkUsageLimit(userId?: string, ip?: string, needed: number = 1, maxLimit: number = DEFAULT_LIMIT): Promise<UsageResult> {
   const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -51,11 +51,11 @@ export async function checkUsageLimit(userId?: string, ip?: string): Promise<Usa
 
       const count = lastDate.getTime() === today.getTime() ? user.dailyConversions : 0;
 
-      if (count >= USAGE_LIMIT) {
+      if (count + (needed - 1) >= maxLimit) {
         return { allowed: false, remaining: 0, isSubscribed: false, isExpired, resetTime };
       }
 
-      return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, isExpired, resetTime };
+      return { allowed: true, remaining: maxLimit - count, isSubscribed: false, isExpired, resetTime };
     } catch (e) {
       console.warn("User usage tracking error:", e);
       return { allowed: true, remaining: 1, isSubscribed: false, isExpired, resetTime };
@@ -67,7 +67,10 @@ export async function checkUsageLimit(userId?: string, ip?: string): Promise<Usa
     });
 
     if (!guestUsage) {
-      return { allowed: true, remaining: USAGE_LIMIT, isSubscribed: false, isExpired: false, resetTime };
+      if (needed > maxLimit) {
+        return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
+      }
+      return { allowed: true, remaining: maxLimit, isSubscribed: false, isExpired: false, resetTime };
     }
 
     const lastDate = new Date(guestUsage.lastConversionDate);
@@ -75,17 +78,17 @@ export async function checkUsageLimit(userId?: string, ip?: string): Promise<Usa
 
     const count = lastDate.getTime() === today.getTime() ? guestUsage.count : 0;
 
-    if (count >= USAGE_LIMIT) {
+    if (count + (needed - 1) >= maxLimit) {
       return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
     }
 
-    return { allowed: true, remaining: USAGE_LIMIT - count, isSubscribed: false, isExpired: false, resetTime };
+    return { allowed: true, remaining: maxLimit - count, isSubscribed: false, isExpired: false, resetTime };
   }
 
   return { allowed: false, remaining: 0, isSubscribed: false, isExpired: false, resetTime };
 }
 
-export async function incrementUsage(userId?: string, ip?: string) {
+export async function incrementUsage(userId?: string, ip?: string, amount: number = 1) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -102,7 +105,7 @@ export async function incrementUsage(userId?: string, ip?: string) {
       const lastDate = new Date(user.lastConversionDate);
       lastDate.setHours(0, 0, 0, 0);
 
-      const newCount = lastDate.getTime() === today.getTime() ? user.dailyConversions + 1 : 1;
+      const newCount = lastDate.getTime() === today.getTime() ? user.dailyConversions + amount : amount;
 
       await prisma.user.update({
         where: { id },
@@ -123,7 +126,7 @@ export async function incrementUsage(userId?: string, ip?: string) {
       await prisma.guestUsage.create({
         data: {
           ip,
-          count: 1,
+          count: amount,
           lastConversionDate: new Date(),
         },
       });
@@ -131,7 +134,7 @@ export async function incrementUsage(userId?: string, ip?: string) {
       const lastDate = new Date(guestUsage.lastConversionDate);
       lastDate.setHours(0, 0, 0, 0);
 
-      const newCount = lastDate.getTime() === today.getTime() ? guestUsage.count + 1 : 1;
+      const newCount = lastDate.getTime() === today.getTime() ? guestUsage.count + amount : amount;
 
       await prisma.guestUsage.update({
         where: { ip },

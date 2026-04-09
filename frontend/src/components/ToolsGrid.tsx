@@ -34,6 +34,14 @@ export default function ToolsGrid() {
       color: "bg-blue-600",
     },
     {
+      title: "Extracción a Excel",
+      slug: "expense-report",
+      category: "Automatización",
+      description: "Genera reportes detectando IVA, Subtotal y RFCs automáticamente.",
+      icon: FileSpreadsheet,
+      color: "bg-green-600",
+    },
+    {
       title: t.tools.dividir,
       slug: "split-pdf",
       category: "Edición",

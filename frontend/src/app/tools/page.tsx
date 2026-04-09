@@ -49,7 +49,6 @@ function ToolsContent() {
         { title: t.tools.girar, slug: "rotate-pdf", description: t.tools.girarDesc, icon: RotateCw, color: "bg-purple-600" },
         { title: t.tools.deletePages, slug: "delete-pages", description: t.tools.eliminarDesc, icon: Trash2, color: "bg-red-600" },
         { title: t.tools.organizePdf, slug: "organize-pdf", description: t.tools.organizePdfDesc, icon: FileSearch, color: "bg-pink-600" },
-        { title: t.tools.comparePdf, slug: "compare-pdf", description: t.tools.comparePdfDesc, icon: FileSearch, color: "bg-indigo-700" },
         { title: t.tools.watermark, slug: "watermark", description: t.tools.watermarkDesc, icon: Layers, color: "bg-blue-700" },
         { title: t.tools.removeWatermark, slug: "remove-watermark", description: t.tools.removeWatermarkDesc, icon: Eraser, color: "bg-cyan-600" },
       ]
@@ -64,11 +63,13 @@ function ToolsContent() {
       ]
     },
     {
-      category: t.toolsPage.categoryOptimize,
-      slug: "Optimization",
-      description: t.toolsPage.descOptimize,
+      category: "Utilidades",
+      slug: "Utilities",
+      description: "Herramientas adicionales, de compresión y productividad.",
       tools: [
+        { title: t.tools.comparePdf, slug: "compare-pdf", description: t.tools.comparePdfDesc, icon: FileSearch, color: "bg-indigo-700" },
         { title: t.tools.compressPdf, slug: "compress-pdf", description: t.tools.compressDesc, icon: FileDown, color: "bg-emerald-600" },
+        { title: "Extracción a Excel", slug: "expense-report", description: "Extrae XML, PDF y Tickets en un Excel tabulado", icon: FileSpreadsheet, color: "bg-green-600" },
       ]
     }
   ];

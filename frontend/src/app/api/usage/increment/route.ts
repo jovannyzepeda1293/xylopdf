@@ -11,7 +11,10 @@ export async function POST(req: Request) {
     // Get IP for guest tracking
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
 
-    await incrementUsage(userId, ip);
+    const body = await req.json().catch(() => ({}));
+    const amount = body.amount || 1;
+
+    await incrementUsage(userId, ip, amount);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

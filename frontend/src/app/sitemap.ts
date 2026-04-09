@@ -26,6 +26,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: '/tools/organize-pdf', priority: 0.8 },
     { url: '/tools/remove-watermark', priority: 0.8 },
     { url: '/tools/watermark', priority: 0.8 },
+    { url: '/tools/expense-report', priority: 0.9 },
     { url: '/tools/compare-pdf', priority: 0.8 },
     { url: '/about', priority: 0.9 },
     { url: '/privacy', priority: 0.7 },

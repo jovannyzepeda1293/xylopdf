@@ -11,7 +11,11 @@ export async function GET(req: Request) {
     // Get IP for guest tracking
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
 
-    const result = await checkUsageLimit(userId, ip);
+    const { searchParams } = new URL(req.url);
+    const needed = parseInt(searchParams.get("needed") || "1");
+    const limit = parseInt(searchParams.get("limit") || "2");
+
+    const result = await checkUsageLimit(userId, ip, needed, limit);
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
