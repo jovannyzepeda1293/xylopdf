@@ -49,7 +49,7 @@ export default function Footer() {
             <h4 className="font-bold mb-6">{t.tools.filterConvert}</h4>
             <ul className="space-y-4 text-sm text-secondary">
               <li><Link href="/tools/lock-pdf" className="hover:text-primary transition-colors">{t.tools.lock}</Link></li>
-              <li><Link href="/tools/deslock-pdf" className="hover:text-primary transition-colors">{t.tools.unlock}</Link></li>
+              <li><Link href="/tools/unlock-pdf" className="hover:text-primary transition-colors">{t.tools.unlock}</Link></li>
               <li><Link href="/tools/pdf-to-word" className="hover:text-primary transition-colors">PDF to Word</Link></li>
               <li><Link href="/tools/pdf-to-excel" className="hover:text-primary transition-colors">PDF to Excel</Link></li>
             </ul>

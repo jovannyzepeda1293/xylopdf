@@ -14,14 +14,20 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://xylopdf.com"),
   title: "XyloPDF - El Mejor Conversor y Editor de PDF Moderno",
   description: "La herramienta de PDF definitiva: une, divide, convierte, comprime y edita tus archivos PDF de forma rápida, segura y gratuita. Optimizado para profesionales y empresas.",
-  keywords: ["pdf converter", "unir pdf", "dividir pdf", "comprimir pdf", "convertir pdf a word", "ocr pdf", "desbloquear pdf", "pdf editor online"],
+  keywords: ["XyloPDF", "pdf converter", "unir pdf", "dividir pdf", "comprimir pdf", "convertir pdf a word", "ocr pdf", "desbloquear pdf", "pdf editor online"],
   authors: [{ name: "Zepeda" }],
+  alternates: {
+    canonical: "/",
+  },
   robots: "index, follow",
   openGraph: {
     title: "XyloPDF - Edición de PDF Rápida y Profesional",
     description: "Herramientas de PDF gratuitas y potentes con un diseño intuitivo.",
+    url: "https://xylopdf.com",
+    siteName: "XyloPDF",
     type: "website",
     locale: "es_MX",
   },

@@ -23,8 +23,8 @@ export const dictionary = {
     },
     hero: {
       tag: "Herramientas PDF de Próxima Generación",
-      title1: "La Solución PDF Más",
-      title2: "Moderna y Eficiente",
+      title1: "XyloPDF: La Solución PDF",
+      title2: "Más Moderna y Eficiente",
       subtitle: "Une, divide, convierte y edita tus archivos PDF con una interfaz intuitiva premium y procesamiento ultra rápido. Gratis y seguro.",
       btnStart: "Comenzar Ahora",
       btnDiscover: "Descubrir Herramientas"
