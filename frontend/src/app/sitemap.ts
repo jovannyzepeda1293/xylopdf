@@ -31,6 +31,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: '/about', priority: 0.9 },
     { url: '/privacy', priority: 0.7 },
     { url: '/terms', priority: 0.7 },
+    { url: '/comparar-pdf-online', priority: 0.9 },
+    { url: '/comparar-contratos', priority: 0.9 },
+    { url: '/control-versiones-documentos', priority: 0.9 },
+    { url: '/herramientas/comparar-pdf-gratis', priority: 0.9 },
+    { url: '/alternativa-a-adobe-compare', priority: 0.9 },
+    { url: '/leer-xml-cfdi', priority: 0.9 },
+    { url: '/automatizar-facturas', priority: 0.9 },
+    { url: '/herramientas-contadores', priority: 0.9 },
+    { url: '/xml-a-excel-gratis', priority: 0.9 },
+    { url: '/convertir-xml-cfdi-excel', priority: 0.9 },
   ];
 
   return routes.map((r) => ({
