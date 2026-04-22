@@ -43,6 +43,7 @@ import ConfirmationGate from "@/components/ConfirmationGate";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { I18nProvider } from "@/lib/i18n/I18nContext";
+import Script from "next/script";
 
 export default async function RootLayout({
   children,
@@ -56,6 +57,16 @@ export default async function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <head>
+        {/* Google tag (gtag.js) */}
+        <Script async src="https://www.googletagmanager.com/gtag/js?id=AW-18112078415" strategy="afterInteractive" />
+        <Script id="google-tag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18112078415');
+          `}
+        </Script>
         {showAdSense && adsenseId && (
           <meta name="google-adsense-account" content={adsenseId} />
         )}
