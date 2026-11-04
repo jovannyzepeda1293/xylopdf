@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://xylopdf.com'; // Adjust to your actual domain
-  const lastModified = new Date();
+  const lastModified = new Date('2026-11-04'); // shortcut: fecha fija; actualizar al cambiar contenido
 
   const routes = [
     { url: '', priority: 1.0 },
@@ -27,15 +27,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: '/tools/remove-watermark', priority: 0.8 },
     { url: '/tools/watermark', priority: 0.8 },
     { url: '/tools/compare-pdf', priority: 0.8 },
-    { url: '/about', priority: 0.9 },
-    { url: '/privacy', priority: 0.7 },
-    { url: '/terms', priority: 0.7 },
+    { url: '/about', priority: 0.6 },
+    { url: '/privacy', priority: 0.3 },
+    { url: '/terms', priority: 0.3 },
   ];
 
   return routes.map((r) => ({
     url: `${baseUrl}${r.url}`,
     lastModified,
-    changeFrequency: 'monthly',
+    changeFrequency: 'monthly' as const,
     priority: r.priority,
   }));
 }

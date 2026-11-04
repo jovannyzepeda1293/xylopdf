@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "OCR a PDF - Convertir Escaneos a Texto",
     description: "Convierte documentos e imágenes escaneadas en archivos PDF con texto seleccionable y buscable (OCR).",
     url: `/tools/ocr-to-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

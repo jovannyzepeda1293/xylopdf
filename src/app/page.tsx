@@ -25,17 +25,12 @@ export default function Home() {
     "name": "XyloPDF",
     "url": "https://xylopdf.com",
     "description": "Edita, convierte y gestiona archivos PDF con la herramienta más rápida y moderna.",
-    "applicationCategory": "PDF Tool",
+    "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Windows, macOS, Linux, Android, iOS",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "1250"
     }
   };
 

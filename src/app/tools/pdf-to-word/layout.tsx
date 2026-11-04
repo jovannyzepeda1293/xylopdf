@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir PDF a Word (DOCX)",
     description: "Convierte tus documentos PDF a archivos Word editables manteniendo el diseño original.",
     url: `/tools/pdf-to-word`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

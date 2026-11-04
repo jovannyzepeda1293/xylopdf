@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir Imágenes a PDF (JPG, PNG, WebP)",
     description: "Convierte imágenes JPG, PNG, y WebP a documentos PDF. Une varias fotos en un solo archivo.",
     url: `/tools/image-to-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir PowerPoint a PDF",
     description: "Convierte tus presentaciones PPT y PPTX a formato PDF de forma instantánea.",
     url: `/tools/ppt-to-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

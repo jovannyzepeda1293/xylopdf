@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir Excel a PDF",
     description: "Convierte tus hojas de cálculo XLSX y XLS a PDF fácilmente conservando el formato y tablas.",
     url: `/tools/excel-to-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

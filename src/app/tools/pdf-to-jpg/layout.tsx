@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir PDF a JPG (Imágenes)",
     description: "Extrae y convierte cada página de tu archivo PDF en una imagen JPG de alta calidad.",
     url: `/tools/pdf-to-jpg`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

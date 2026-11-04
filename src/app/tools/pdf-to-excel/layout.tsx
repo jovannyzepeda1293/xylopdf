@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir PDF a Excel (XLSX)",
     description: "Extrae tablas y datos de tus archivos PDF y conviértelos a hojas de cálculo Excel editables.",
     url: `/tools/pdf-to-excel`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

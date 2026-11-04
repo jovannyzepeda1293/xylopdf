@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Bloquear PDF con Contraseña Seguro",
     description: "Protege tus documentos PDF añadiendo una contraseña segura. Encriptación fuerte gratuita.",
     url: `/tools/lock-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

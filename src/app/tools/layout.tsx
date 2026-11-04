@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Herramientas PDF Avanzadas y Gratuitas",
     description: "La paquetería más completa de utilidades PDF para uso personal y profesional.",
     url: `/tools`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

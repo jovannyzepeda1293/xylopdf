@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Organizar PDF - Reordenar Páginas",
     description: "Reordena, extrae o elimina las páginas de tu archivo PDF usando una interfaz intuitiva.",
     url: `/tools/organize-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

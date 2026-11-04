@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Dividir PDF - Extraer Páginas de PDF",
     description: "Extrae una o varias páginas de tu PDF o divide el documento en varios archivos independientes.",
     url: `/tools/split-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

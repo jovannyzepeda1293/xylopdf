@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Añadir Marca de Agua a PDF",
     description: "Agrega texto o imágenes como marca de agua en tus archivos PDF para proteger tu propiedad intelectual.",
     url: `/tools/watermark`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

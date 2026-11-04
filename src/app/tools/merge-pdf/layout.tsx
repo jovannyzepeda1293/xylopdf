@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Unir PDF Online – Combina Varios Archivos",
     description: "Combina varios archivos PDF en un único documento. Es online, rápido y gratuito.",
     url: `/tools/merge-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

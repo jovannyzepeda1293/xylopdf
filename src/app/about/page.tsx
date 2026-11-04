@@ -16,7 +16,7 @@ export default function NosotrosPage() {
       "name": "XyloPDF",
       "description": lang === 'es' ? "Plataforma líder en herramientas de edición y conversión de PDF." : "Leading platform for PDF editing and conversion tools.",
       "url": "https://xylopdf.com",
-      "logo": "https://xylopdf.com/logo.png"
+      "logo": "https://xylopdf.com/logo.svg"
     }
   };
 

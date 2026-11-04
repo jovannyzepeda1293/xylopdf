@@ -14,23 +14,45 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "XyloPDF - El Mejor Conversor y Editor de PDF Moderno",
-  description: "La herramienta de PDF definitiva: une, divide, convierte, comprime y edita tus archivos PDF de forma rápida, segura y gratuita. Optimizado para profesionales y empresas.",
-  keywords: ["pdf converter", "unir pdf", "dividir pdf", "comprimir pdf", "convertir pdf a word", "ocr pdf", "desbloquear pdf", "pdf editor online"],
-  authors: [{ name: "Zepeda" }],
-  robots: "index, follow",
+  metadataBase: new URL("https://xylopdf.com"),
+  title: "XyloPDF - Unir, Dividir, Comprimir y Convertir PDF Gratis Online",
+  description: "Une, divide, comprime, convierte y edita archivos PDF online, gratis y sin instalar nada. PDF a Word, Excel, JPG, OCR, proteger y desbloquear PDF.",
+  authors: [{ name: "XyloPDF" }],
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   openGraph: {
-    title: "XyloPDF - Edición de PDF Rápida y Profesional",
-    description: "Herramientas de PDF gratuitas y potentes con un diseño intuitivo.",
+    title: "XyloPDF - Herramientas PDF Gratis Online",
+    description: "Une, divide, comprime y convierte PDF gratis, de forma rápida y segura.",
+    url: "/",
+    siteName: "XyloPDF",
     type: "website",
     locale: "es_MX",
+    alternateLocale: ["en_US"],
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "XyloPDF - El Futuro de la Gestión de PDF",
-    description: "Convierte y edita PDFs con la mejor interfaz del mercado.",
-  },
+  // Solo card: X/Twitter cae a og:title/og:description de cada página.
+  twitter: { card: "summary_large_image", images: ["/og"] },
 };
+
+const siteJsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://xylopdf.com/#org",
+    name: "XyloPDF",
+    url: "https://xylopdf.com",
+    logo: "https://xylopdf.com/logo.svg",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://xylopdf.com/#website",
+    name: "XyloPDF",
+    url: "https://xylopdf.com",
+    inLanguage: ["es", "en"],
+    publisher: { "@id": "https://xylopdf.com/#org" },
+  },
+];
 
 import AuthProvider from "@/components/AuthProvider";
 import ConfirmationGate from "@/components/ConfirmationGate";
@@ -50,6 +72,7 @@ export default async function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         {showAdSense && adsenseId && (
           <meta name="google-adsense-account" content={adsenseId} />
         )}

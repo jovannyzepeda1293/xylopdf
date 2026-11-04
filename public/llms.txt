@@ -1,0 +1,30 @@
+# XyloPDF
+
+> XyloPDF es un conjunto de herramientas PDF online, gratuitas y sin instalación: unir, dividir, comprimir, convertir (PDF↔Word/Excel/PowerPoint/JPG), OCR, proteger, desbloquear, rotar, organizar y marcas de agua. Idiomas: español e inglés.
+
+## Herramientas
+- [Unir PDF](https://xylopdf.com/tools/merge-pdf): combina varios PDF en uno
+- [Dividir PDF](https://xylopdf.com/tools/split-pdf): extrae páginas o divide un PDF
+- [Comprimir PDF](https://xylopdf.com/tools/compress-pdf): reduce el tamaño del archivo
+- [PDF a Word](https://xylopdf.com/tools/pdf-to-word): convierte a DOCX editable
+- [PDF a Excel](https://xylopdf.com/tools/pdf-to-excel): extrae tablas a XLSX
+- [PDF a PowerPoint](https://xylopdf.com/tools/pdf-to-ppt)
+- [PDF a JPG](https://xylopdf.com/tools/pdf-to-jpg)
+- [Word a PDF](https://xylopdf.com/tools/word-to-pdf)
+- [Excel a PDF](https://xylopdf.com/tools/excel-to-pdf)
+- [PowerPoint a PDF](https://xylopdf.com/tools/ppt-to-pdf)
+- [Imagen a PDF](https://xylopdf.com/tools/image-to-pdf)
+- [OCR a PDF](https://xylopdf.com/tools/ocr-to-pdf)
+- [Bloquear PDF](https://xylopdf.com/tools/lock-pdf)
+- [Desbloquear PDF](https://xylopdf.com/tools/unlock-pdf)
+- [Girar PDF](https://xylopdf.com/tools/rotate-pdf)
+- [Eliminar páginas](https://xylopdf.com/tools/delete-pages)
+- [Organizar PDF](https://xylopdf.com/tools/organize-pdf)
+- [Añadir marca de agua](https://xylopdf.com/tools/watermark)
+- [Quitar marca de agua](https://xylopdf.com/tools/remove-watermark)
+- [Comparar PDF](https://xylopdf.com/tools/compare-pdf)
+
+## Información
+- [Sobre nosotros](https://xylopdf.com/about)
+- [Privacidad](https://xylopdf.com/privacy)
+- [Términos](https://xylopdf.com/terms)

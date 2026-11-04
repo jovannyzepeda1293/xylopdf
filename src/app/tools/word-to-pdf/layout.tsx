@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Convertir Word a PDF",
     description: "Convierte tus documentos Word (DOC, DOCX) a archivos PDF manteniendo el diseño intacto.",
     url: `/tools/word-to-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

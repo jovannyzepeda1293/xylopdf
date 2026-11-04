@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Eliminar Marca de Agua de PDF",
     description: "Quita marcas de agua molestas de tus archivos PDF de forma rápida, sencilla y gratuita.",
     url: `/tools/remove-watermark`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

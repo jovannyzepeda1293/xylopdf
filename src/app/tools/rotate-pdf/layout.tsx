@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Girar PDF - Rotar Páginas",
     description: "Rota páginas de tus archivos PDF permanentemente. Gira a la derecha o izquierda en un clic.",
     url: `/tools/rotate-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Comprimir PDF – Reduce el Tamaño sin Perder Calidad",
     description: "Comprime archivos PDF al instante. Reduce el tamaño de tus documentos manteniendo la máxima calidad.",
     url: `/tools/compress-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

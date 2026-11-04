@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Eliminar Páginas de PDF",
     description: "Quita las páginas innecesarias de tus documentos PDF. Fácil, rápido y online.",
     url: `/tools/delete-pages`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 

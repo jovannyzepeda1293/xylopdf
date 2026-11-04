@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     title: "Comparar PDF Online Gratis",
     description: "Encuentra diferencias entre dos versiones de un PDF. Compara textos y páginas de forma visual.",
     url: `/tools/compare-pdf`,
+    siteName: "XyloPDF",
+    type: "website",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "XyloPDF" }],
   }
 };
 
