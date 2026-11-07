@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  # Servidor Backend (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pdf-converter-backend
+    restart: always
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - BAN_THRESHOLD=10
+    networks:
+      - shared_net
+    ports:
+      - "3501:8000"
+
+  # Servidor Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+        - NEXT_PUBLIC_ADSENSE_ACCOUNT=${NEXT_PUBLIC_ADSENSE_ACCOUNT}
+    container_name: pdf-converter-frontend
+    restart: always
+    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - shared_net
+    ports:
+      - "3500:3000"
+
+networks:
+  shared_net:
+    external: true
