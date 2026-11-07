@@ -5,8 +5,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: '/api/',
+      disallow: ['/api/', '/account', '/login', '/register', '/forgot-password', '/reset-password/', '/confirm-account/', '/auth-redirect', '/activate-premium', '/unlimited-access'],
     },
-    sitemap: 'https://xylopdf.com/sitemap.xml', // Adjust to your actual domain
+    sitemap: 'https://xylopdf.com/sitemap.xml',
+    host: 'https://xylopdf.com',
   };
 }

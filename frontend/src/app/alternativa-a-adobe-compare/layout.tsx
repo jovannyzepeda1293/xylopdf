@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/alternativa-a-adobe-compare" },
+  openGraph: { url: "/alternativa-a-adobe-compare", type: "website", locale: "es_MX", siteName: "XyloPDF" },
   title: "Xylo PDF: La mejor alternativa a Adobe para comparar PDFs 🆚",
   description: "Compara PDFs de forma más rápida y barata que con Adobe Acrobat. Descubre por qué miles de usuarios prefieren Xylo PDF.",
   keywords: ["alternativa adobe acrobat", "comparar pdf adobe vs xylo", "mejor comparador pdf", "Xylo PDF"],

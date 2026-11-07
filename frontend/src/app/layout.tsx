@@ -17,12 +17,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://xylopdf.com"),
   title: "XyloPDF - El Mejor Conversor y Editor de PDF Moderno",
   description: "La herramienta de PDF definitiva: une, divide, convierte, comprime y edita tus archivos PDF de forma rápida, segura y gratuita. Optimizado para profesionales y empresas.",
-  keywords: ["XyloPDF", "pdf converter", "unir pdf", "dividir pdf", "comprimir pdf", "convertir pdf a word", "ocr pdf", "desbloquear pdf", "pdf editor online"],
   authors: [{ name: "Zepeda" }],
   alternates: {
     canonical: "/",
   },
-  robots: "index, follow",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   openGraph: {
     title: "XyloPDF - Edición de PDF Rápida y Profesional",
     description: "Herramientas de PDF gratuitas y potentes con un diseño intuitivo.",
@@ -44,6 +43,11 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { I18nProvider } from "@/lib/i18n/I18nContext";
 import Script from "next/script";
+
+const siteJsonLd = [
+  { "@context": "https://schema.org", "@type": "Organization", name: "XyloPDF", url: "https://xylopdf.com", logo: "https://xylopdf.com/icon.png" },
+  { "@context": "https://schema.org", "@type": "WebSite", name: "XyloPDF", url: "https://xylopdf.com", inLanguage: "es" },
+];
 
 export default async function RootLayout({
   children,
@@ -67,6 +71,7 @@ export default async function RootLayout({
             gtag('config', 'AW-18112078415');
           `}
         </Script>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
         {showAdSense && adsenseId && (
           <meta name="google-adsense-account" content={adsenseId} />
         )}

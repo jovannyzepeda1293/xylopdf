@@ -64,14 +64,13 @@ export default function DeletePagesUploader() {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('pages', pagesToDelete);
 
     try {
       const interval = setInterval(() => {
         setProgress(prev => (prev < 90 ? prev + 10 : 90));
       }, 200);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/delete-pages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/delete-pages?pages_to_delete=${encodeURIComponent(pagesToDelete)}`, {
         method: 'POST',
         body: formData,
       });
@@ -80,8 +79,8 @@ export default function DeletePagesUploader() {
       setProgress(100);
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || t.deletePages.uploader.errorFetching);
+        const data = await response.json().catch(() => ({}));
+        throw new Error(typeof data.detail === 'string' ? data.detail : t.deletePages.uploader.errorFetching);
       }
 
       const blob = await response.blob();
