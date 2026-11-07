@@ -12,7 +12,8 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
 
     const body = await req.json().catch(() => ({}));
-    const amount = body.amount || 1;
+    // El cliente controla este valor: un número negativo reduciría el uso y evadiría el límite.
+    const amount = Math.min(Math.max(Math.floor(Number(body.amount)) || 1, 1), 50);
 
     await incrementUsage(userId, ip, amount);
     return NextResponse.json({ success: true });

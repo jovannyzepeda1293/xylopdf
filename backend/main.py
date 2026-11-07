@@ -158,7 +158,11 @@ async def stripe_webhook(request: Request):
         payload_data = json.loads(payload_raw)
         
         # Caso especial: n8n manda una lista [{ "headers": ..., "body": ... }]
+        # Esta rama no trae firma de Stripe: solo se acepta con un secreto compartido (N8N_WEBHOOK_SECRET).
+        n8n_secret = os.getenv("N8N_WEBHOOK_SECRET")
         if isinstance(payload_data, list) and len(payload_data) > 0 and "body" in payload_data[0]:
+            if not n8n_secret or request.headers.get("x-webhook-secret") != n8n_secret:
+                raise HTTPException(status_code=403, detail="Origen no autorizado.")
             n8n_item = payload_data[0]
             event = n8n_item["body"]
             # Si n8n ya parseó el body, lo usamos directo, si no lo parseamos
@@ -184,12 +188,8 @@ async def stripe_webhook(request: Request):
             r.setex(f"ban:{ip}", BAN_DURATION, "true")
             print(f"Python Security: BANUEADO IP {ip} por {BAN_DURATION}s tras {fails} fallos.")
             
-        # Si falla la verificación pero hay un body, intentamos procesar (para pruebas con n8n)
-        try:
-            event = json.loads(payload_raw)
-            if isinstance(event, list): event = event[0].get("body", event[0])
-        except:
-            raise HTTPException(status_code=400, detail=str(e))
+        # Nunca procesar un evento cuya firma/origen no se pudo verificar.
+        raise HTTPException(status_code=400, detail="Webhook inválido.")
 
     # Convert to dict if it's a stripe object (SDK v8+)
     if not isinstance(event, dict) and hasattr(event, "to_dict"):
@@ -820,12 +820,13 @@ async def organize_pdf(file: UploadFile = File(...), order: str = Form(...)):
         raise HTTPException(status_code=500, detail=f"Error al organizar PDF: {str(e)}")
 
 async def convert_to_pdf_with_libreoffice(file: UploadFile, allowed_extensions: List[str]):
-    ext = file.filename.split(".")[-1].lower()
+    filename = os.path.basename(file.filename or "")
+    ext = filename.split(".")[-1].lower()
     if ext not in allowed_extensions:
         raise HTTPException(status_code=400, detail=f"Extensión .{ext} no permitida.")
-    
+
     with tempfile.TemporaryDirectory() as temp_dir:
-        input_path = os.path.join(temp_dir, file.filename)
+        input_path = os.path.join(temp_dir, filename)
         content = await file.read()
         with open(input_path, "wb") as f:
             f.write(content)
@@ -833,14 +834,16 @@ async def convert_to_pdf_with_libreoffice(file: UploadFile, allowed_extensions: 
         try:
             # Run LibreOffice headless conversion
             result = subprocess.run(
-                ["soffice", "--headless", "--convert-to", "pdf", "--outdir", temp_dir, input_path],
+                # Perfil propio por llamada: con el perfil compartido, conversiones simultáneas se bloquean.
+                ["soffice", f"-env:UserInstallation=file://{temp_dir}/lo_profile", "--headless", "--convert-to", "pdf", "--outdir", temp_dir, input_path],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                timeout=120
             )
-            
+
             # The output filename will be the same as input but with .pdf extension
-            output_filename = ".".join(file.filename.split(".")[:-1]) + ".pdf"
+            output_filename = ".".join(filename.split(".")[:-1]) + ".pdf"
             output_path = os.path.join(temp_dir, output_filename)
             
             if not os.path.exists(output_path):
@@ -854,6 +857,8 @@ async def convert_to_pdf_with_libreoffice(file: UploadFile, allowed_extensions: 
                 media_type="application/pdf",
                 headers={'Content-Disposition': f'attachment; filename="{output_filename}"'}
             )
+        except subprocess.TimeoutExpired:
+            raise HTTPException(status_code=504, detail="La conversión tardó demasiado.")
         except subprocess.CalledProcessError as e:
             raise HTTPException(status_code=500, detail=f"Error en la conversión de LibreOffice: {e.stderr}")
         except Exception as e:
